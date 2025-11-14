@@ -1,0 +1,238 @@
+"Phrases"
+{
+    "SoundMenu_Title"
+    {
+        "en" "Sound Manifest Settings"
+        "ru" "Настройки звуков"
+    }
+    "SoundMenu_ToggleOn"
+    {
+        "en" "Sounds: ON"
+        "ru" "Звуки: ВКЛ"
+    }
+    "SoundMenu_ToggleOff"
+    {
+        "en" "Sounds: OFF"
+        "ru" "Звуки: ВЫКЛ"
+    }
+    "SoundMenu_HUD_Messages_Enabled"
+    {
+        "en" "HUD is ON."
+        "ru" "сообщения включены."
+    }
+    "SoundMenu_HUD_Messages_Disabled"
+    {
+        "en" "HUD is disabled."
+        "ru" "сообщения выключены."
+    }
+    "FirstBlood_Message"
+    {
+        "en" "{green}[SM]{default} {1:N} drew first blood!"
+        "ru" "{green}[SM]{default} {1:N} пролил первую кровь!"
+    }
+    "FirstBlood_HUD"
+    {
+        "en" "{1:N} drew first blood!"
+        "ru" "{1:N} пролил первую кровь!"
+    }
+    "Headshot_Message"
+    {
+        "en" "{orange}[SM]{default} {1:N} headshotted {2:N}."
+        "ru" "{orange}[SM]{default} {1:N} отстрелил башку {2:N}."
+    }
+    "Headshot_HUD"
+    {
+        "en" "{1:N} headshotted {2:N}."
+        "ru" "{1:N} отстрелил башку {2:N}."
+    }
+    "DoubleKill_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} did a Double Kill!"
+        "ru" "{red}[SM]{default} {1:N} сделал двойное убийство!"
+    }
+    "DoubleKill_HUD"
+    {
+        "en" "{1:N} did a Double Kill!"
+        "ru" "{1:N} сделал двойное убийство!"
+    }
+    "TripleKill_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} did a Triple Kill!"
+        "ru" "{red}[SM]{default} {1:N} сделал тройное убийство!"
+    }
+    "TripleKill_HUD"
+    {
+        "en" "{1:N} did a Triple Kill!"
+        "ru" "{1:N} сделал тройное убийство!"
+    }
+    "QuadKill_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} Quadruple Kill!"
+        "ru" "{1:N} - Четверное убийство!"
+    }
+    "QuadKill_HUD"
+    {
+        "en" "{1:N} Quadruple Kill!"
+        "ru" "{1:N} - Четверное убийство!"
+    }
+    "MultiKill_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} 5X Kill streak!"
+        "ru" "{red}[SM]{default} {1:N} 5X серию убийств!"
+    }
+    "MultiKill_HUD"
+    {
+        "en" "{1:N} 5X Kill streak!"
+        "ru" "{1:N} 5X серию убийств!"
+    }
+    "SuperKill_Message"
+    {
+        "en" "{purple}[SM]{default} {1:N} is Super-serial killer!"
+        "ru" "{purple}[SM]{default} {1:N} супер-серийный убийца!"
+    }
+    "SuperKill_HUD"
+    {
+        "en" "{1:N} is Super-serial killer!"
+        "ru" "{1:N} супер-серийный убийца!"
+    }
+    "UltraKill_Message"
+    {
+        "en" "{purple}[SM]{default} {1:N} is Ultra-Killer!"
+        "ru" "{purple}[SM]{default} {1:N} Ультра-убийца!"
+    }
+    "UltraKill_HUD"
+    {
+        "en" "{1:N} is Ultra-Killer!"
+        "ru" "{1:N} Ультра-убийца!"
+    }
+    "MegaKill_Message"
+    {
+        "en" "{purple}[SM]{default} {1:N} is MEGA-killer!!"
+        "ru" "{purple}[SM]{default} {1:N} МЕГА-убийца!"
+    }
+    "MegaKill_HUD"
+    {
+        "en" "{1:N} is MEGA-killer!"
+        "ru" "{1:N} МЕГА-убийца!"
+    }
+    "MonsterKill_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} is Killer Monster!"
+        "ru" "{red}[SM]{default} {1:N} МОНСТР-убийца"
+    }
+    "MonsterKill_HUD"
+    {
+        "en" "{1:N} is Killer Monster!"
+        "ru" "{1:N} МОНСТР-убийца"
+    }
+    "Godlike_Message"
+    {
+        "en" "{gold}[SM]{default} {1:N} is Godlike!"
+        "ru" "{gold}[SM]{default} {1:N} божественен!"
+    }
+    "Godlike_HUD"
+    {
+        "en" "{1:N} is Godlike!"
+        "ru" "{1:N} божественен!"
+    }
+    "Combo_Message"
+    {
+        "en" "{lightblue}[SM]{default} {1:N} is on a {2} kill combo!"
+        "ru" "{lightblue}[SM]{default} {1:N} совершает комбо из {2} убийств!"
+    }
+    "Combo_HUD"
+    {
+        "en" "{1:N} is on a {2} kill combo!"
+        "ru" "{1:N} совершает комбо из {2} убийств!"
+    }
+    "KnifeKill_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} knifed {2:N}."
+        "ru" "{red}[SM]{default} {1:N} зарезал {2:N}."
+    }
+    "KnifeKill_HUD"
+    {
+        "en" "{1:N} knifed {2:N}."
+        "ru" "{1:N} зарезал {2:N}."
+    }
+    "GrenadeKill_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} blew up {2:N} with a grenade."
+        "ru" "{red}[SM]{default} {1:N} взорвал {2:N} гранатой."
+    }
+    "GrenadeKill_HUD"
+    {
+        "en" "{1:N} blew up {2:N} with a grenade."
+        "ru" "{1:N} взорвал {2:N} гранатой."
+    }
+    "Suicide_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} committed suicide."
+        "ru" "{red}[SM]{default} {1:N} совершил самоубийство."
+    }
+    "Suicide_HUD"
+    {
+        "en" "{1:N} committed suicide."
+        "ru" "{1:N} совершил самоубийство."
+    }
+    "TeamKill_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} team-killed {2:N}."
+        "ru" "{red}[SM]{default} {1:N} убил союзника {2:N}."
+    }
+    "TeamKill_HUD"
+    {
+        "en" "{1:N} team-killed {2:N}."
+        "ru" "{1:N} убил союзника {2:N}."
+    }
+    "JusticeKill_Message"
+    {
+        "en" "{blue}[SM]{default} {1:N} has served justice to {2:N}."
+        "ru" "{blue}[SM]{default} {1:N} совершил правосудие над {2:N}."
+    }
+    "JusticeKill_HUD"
+    {
+        "en" "{1:N} has served justice to {2:N}."
+        "ru" "{1:N} совершил правосудие над {2:N}."
+    }
+    "SpecialKill_Message"
+    {
+        "en" "{yellow}[SM]{default} {1:N} killed {2:N} in a special way."
+        "ru" "{yellow}[SM]{default} {1:N} убил {2:N} особым способом."
+    }
+    "SpecialKill_HUD"
+    {
+        "en" "{1:N} killed {2:N} in a special way."
+        "ru" "{1:N} убил {2:N} особым способом."
+    }
+    "PlayerDisconnect_Message"
+    {
+        "en" "{gray}[SM]{default} {1:N} has disconnected."
+        "ru" "{gray}[SM]{default} {1:N} отключился."
+    }
+    "PlayerDisconnect_HUD"
+    {
+        "en" "{1:N} has disconnected."
+        "ru" "{1:N} отключился."
+    }
+    "PlayerKick_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} was kicked from the server."
+        "ru" "{red}[SM]{default} {1:N} был изгнан с сервера."
+    }
+    "PlayerKick_HUD"
+    {
+        "en" "{1:N} was kicked from the server."
+        "ru" "{1:N} был изгнан с сервера."
+    }
+    "PlayerVACBanned_Message"
+    {
+        "en" "{red}[SM]{default} {1:N} Get out here Freak!"
+        "ru" "{red}[SM]{default} {1:N} Вали с миром, но в ЖОПУ!"
+    }
+    "PlayerVACBanned_HUD"
+    {
+        "en" "{1:N} Get out here Freak!"
+        "ru" "{1:N} Вали с миром, но в ЖОПУ!"
+    }
+}
