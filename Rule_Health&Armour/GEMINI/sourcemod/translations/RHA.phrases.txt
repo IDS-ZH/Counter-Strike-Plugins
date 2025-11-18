@@ -1,0 +1,24 @@
+"Phrases"
+{
+    "RHA_GroupMessage"
+    {
+        "en"	"{green}You are in group {lightgreen}%s{green}. Health: {darkgreen}%d{green}, Armor: {brown}%d{green}, Helmet: {default}%t"
+        "ru"	"{green}Вы в группе {lightgreen}%s{green}. Здоровье: {darkgreen}%d{green}, Броня: {brown}%d{green}, Шлем: {default}%t"
+        "uk"	"{green}Ви в групі {lightgreen}%s{green}. Здоров'я: {darkgreen}%d{green}, Броня: {brown}%d{green}, Шолом: {default}%t"
+        "de"	"{green}Du bist in Gruppe {lightgreen}%s{green}. Gesundheit: {darkgreen}%d{green}, Rüstung: {brown}%d{green}, Helm: {default}%t"
+    }
+    "Yes"
+    {
+        "en"    "Yes"
+        "ru"    "Да"
+        "uk"    "Так"
+        "de"    "Ja"
+    }
+    "No"
+    {
+        "en"    "No"
+        "ru"    "Нет"
+        "uk"    "Ні"
+        "de"    "Nein"
+    }
+}
