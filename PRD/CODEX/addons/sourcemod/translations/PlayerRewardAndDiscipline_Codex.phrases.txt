@@ -1,0 +1,99 @@
+"Phrases"
+{
+    "TKAggressorLeft"
+    {
+        "#format" "{1:c}"
+        "en"    "{red}[PRD]{default} The player who attacked you has left the server."
+        "ru"    "{red}[PRD]{default} Игрок, напавший на вас, покинул сервер."
+    }
+    "CamperWarning"
+    {
+        "#format" "{1:c}"
+        "en"    "{lightblue}[PRD]{default} Stop camping or you will be punished!"
+        "ru"    "{lightblue}[PRD]{default} Прекрати кемперить или будешь наказан!"
+    }
+    "AdminMenuTitle"
+    {
+        "#format" "{1:c}"
+        "en"    "PRD Admin Menu"
+        "ru"    "PRD меню администратора"
+    }
+    "TKMenuTitle"
+    {
+        "#format" "{1:s}"
+        "en"    "Punish teamkiller: {1}?"
+        "ru"    "Наказать тимкиллера: {1}?"
+    }
+    "TKMenuForgive"
+    {
+        "#format" "{1:c}"
+        "en"    "Forgive"
+        "ru"    "Простить"
+    }
+    "VoteYes"
+    {
+        "#format" "{1:c}"
+        "en"    "Yes"
+        "ru"    "Да"
+    }
+    "VoteNo"
+    {
+        "#format" "{1:c}"
+        "en"    "No"
+        "ru"    "Нет"
+    }
+    "MVP_MenuTitle"
+    {
+        "#format" "{1:s}"
+        "en"    "Reward MVP: {1}?"
+        "ru"    "Выдать награду MVP: {1}?"
+    }
+    "MVP_Reward"
+    {
+        "#format" "{1:d}"
+        "en"    "{green}[PRD]{default} You have been rewarded ${1} for being the MVP!"
+        "ru"    "{green}[PRD]{default} Вы получили ${1} за то, что стали MVP!"
+    }
+    "Teamkill_Justice"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{green}[PRD]{default} {1} has executed justice upon {2}."
+        "ru"    "{green}[PRD]{default} {1} свершил справедливое возмездие над {2}."
+    }
+    "Teamkill_Mutual"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{orange}[PRD]{default} {1} killed {2} in mutual aggression."
+        "ru"    "{orange}[PRD]{default} {1} убил {2} в условиях взаимной агрессии."
+    }
+    "Teamkill_AutoPunish"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{red}[PRD]{default} {1} was punished for killing {2}."
+        "ru"    "{red}[PRD]{default} {1} наказан за убийство {2}."
+    }
+    "Teamkill_VictimNotice"
+    {
+        "#format" "{1:N}"
+        "en"    "{lightgreen}[PRD]{default} You were killed by {1}. You can choose to punish them next round."
+        "ru"    "{lightgreen}[PRD]{default} Вас убил {1}. В следующем раунде вы сможете выбрать наказание."
+    }
+    "Teamkill_Forgive"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{lightgreen}[PRD]{default} {1} has forgiven {2}."
+        "ru"    "{lightgreen}[PRD]{default} {1} простил {2}."
+    }
+    "AdminRuleHint"
+    {
+        "#format" "{1:s}"
+        "en"    "Admin Rule: {1}"
+        "ru"    "Правило для админов: {1}"
+    }
+    "PlayerRuleHint"
+    {
+        "#format" "{1:s}"
+        "en"    "Rule: {1}"
+        "ru"    "Правило: {1}"
+    }
+}

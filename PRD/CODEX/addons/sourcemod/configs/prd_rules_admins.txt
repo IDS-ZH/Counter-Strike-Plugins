@@ -1,0 +1,1 @@
+﻿Rotate maps when requested.;Keep an eye on camper warnings.
