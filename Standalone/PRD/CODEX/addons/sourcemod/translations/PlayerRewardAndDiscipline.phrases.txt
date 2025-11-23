@@ -1,0 +1,153 @@
+"Phrases"
+{
+    "TKAggressorLeft"
+    {
+        "#format" "{1:c}"
+        "en"    "{red}[PRD]{default} The player who attacked you has left the server."
+        "ru"    "{red}[PRD]{default} Игрок, который вас атаковал, покинул сервер."
+    }
+    "CamperWarning"
+    {
+        "#format" "{1:c}"
+        "en"    "{lightblue}[PRD]{default} Stop camping or you will be punished!"
+        "ru"    "{lightblue}[PRD]{default} Прекратите сидеть на месте, или вы будете наказаны!"
+    }
+    "AdminMenuTitle"
+    {
+        "#format" "{1:c}"
+        "en"    "PRD Admin Menu"
+        "ru"    "PRD Меню Администратора"
+    }
+    "AdminMenuMVP_On"
+    {
+        "#format" "{1:c}"
+        "en"    "MVP Rewards (On)"
+        "ru"    "Награды MVP (Вкл)"
+    }
+    "AdminMenuMVP_Off"
+    {
+        "#format" "{1:c}"
+        "en"    "MVP Rewards (Off)"
+        "ru"    "Награды MVP (Выкл)"
+    }
+    "AdminMenuTK_On"
+    {
+        "#format" "{1:c}"
+        "en"    "Teamkill Punish (On)"
+        "ru"    "Наказания за тимкилл (Вкл)"
+    }
+    "AdminMenuTK_Off"
+    {
+        "#format" "{1:c}"
+        "en"    "Teamkill Punish (Off)"
+        "ru"    "Наказания за тимкилл (Выкл)"
+    }
+    "AdminMenuCamper_On"
+    {
+        "#format" "{1:c}"
+        "en"    "Anti-Camper (On)"
+        "ru"    "Анти-кемпер (Вкл)"
+    }
+    "AdminMenuCamper_Off"
+    {
+        "#format" "{1:c}"
+        "en"    "Anti-Camper (Off)"
+        "ru"    "Анти-кемпер (Выкл)"
+    }
+    "TKMenuTitle"
+    {
+        "#format" "{1:s}"
+        "en"    "Punish teamkiller: {1}?"
+        "ru"    "Наказать тимкиллера: {1}?"
+    }
+    "TKMenuForgive"
+    {
+        "#format" "{1:c}"
+        "en"    "Forgive"
+        "ru"    "Простить"
+    }
+    "VoteYes"
+    {
+        "#format" "{1:c}"
+        "en"    "Yes"
+        "ru"    "Да"
+    }
+    "VoteNo"
+    {
+        "#format" "{1:c}"
+        "en"    "No"
+        "ru"    "Нет"
+    }
+    "MVP_MenuTitle"
+    {
+        "#format" "{1:s}"
+        "en"    "Reward MVP: {1}?"
+        "ru"    "Наградить MVP: {1}?"
+    }
+    "MVP_Reward"
+    {
+        "#format" "{1:d}"
+        "en"    "{green}[PRD]{default} You have been rewarded ${1} for being the MVP!"
+        "ru"    "{green}[PRD]{default} Вы получили ${1} за то, что стали MVP!"
+    }
+    "Teamkill_Justice"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{green}[PRD]{default} {1} has executed justice upon {2}."
+        "ru"    "{green}[PRD]{default} {1} совершил правосудие над {2}."
+    }
+    "Teamkill_Mutual"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{orange}[PRD]{default} {1} killed {2} in mutual aggression."
+        "ru"    "{orange}[PRD]{default} {1} убил {2} в ходе взаимной агрессии."
+    }
+    "Teamkill_AutoPunish"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{red}[PRD]{default} {1} was punished for killing {2}."
+        "ru"    "{red}[PRD]{default} {1} был наказан за убийство {2}."
+    }
+    "Teamkill_VictimNotice"
+    {
+        "#format" "{1:N}"
+        "en"    "{lightgreen}[PRD]{default} You were killed by {1}. You can choose to punish them next round."
+        "ru"    "{lightgreen}[PRD]{default} Вас убил {1}. В следующем раунде вы сможете выбрать наказание."
+    }
+    "Teamkill_Forgive"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{lightgreen}[PRD]{default} {1} has forgiven {2}."
+        "ru"    "{lightgreen}[PRD]{default} {1} простил игрока {2}."
+    }
+    "Teamkill_Slay"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{red}[PRD]{default} {1} chose to slay {2}."
+        "ru"    "{red}[PRD]{default} {1} выбрал убийство для {2}."
+    }
+    "Teamkill_Burn"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{red}[PRD]{default} {1} chose to burn {2}."
+        "ru"    "{red}[PRD]{default} {1} выбрал сожжение для {2}."
+    }
+    "Teamkill_Slap"
+    {
+        "#format" "{1:N},{2:N}"
+        "en"    "{red}[PRD]{default} {1} chose to slap {2}."
+        "ru"    "{red}[PRD]{default} {1} выбрал шлепок для {2}."
+    }
+    "AdminRuleHint"
+    {
+        "#format" "{1:s}"
+        "en"    "Admin Rule: {1}"
+        "ru"    "Правило для админов: {1}"
+    }
+    "PlayerRuleHint"
+    {
+        "#format" "{1:s}"
+        "en"    "Rule: {1}"
+        "ru"    "Правило: {1}"
+    }
+}

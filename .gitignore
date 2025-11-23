@@ -1,30 +1,34 @@
 # Ignore compiled SourceMod plugins and local build artifacts
 
-node_modules/
 .vscode/
 *.zip
 .gitignore
 .github
-
+.ssh
 # Ignore VS Code workspace file
 Counter-Strike-Plugins.code-workspace
+Counter-Strike-Plugins-wsl.code-workspace
 
 Gemini_Changelog.md
 /sourcemod-1.13.0-git7260-windows
 /sourcemod-1.12.0-git7210-windows
-
+Sourcemod-1.13-CUSTOMized
+default_game_dir
 # Игнорировать файлы для отладки плагинов
 *.bat
 *.cmd
 GEMINI.md
 Development_Changelog.md
 /Журналы AppId 240 AppId 232330/
-.gemini/
 gha-creds-*.json
 /служебные сценарии
+Documents
 server_file_list_cmd.txt
 .qwen
-
+.gemini
+.codex
+.chroma_db
+.chroma_db_docs
 # SoundManifest specific ignored files
 SoundManifest/wav-list.txt
 SoundManifest/предложения и замечания SoundManifest.txt
@@ -33,3 +37,12 @@ SoundManifest/список оружия всего.txt
 
 SoundManifest/SoundManifest-3.2-Documentation.md
 SoundManifest/SoundManifest-Qwen-Development-Documentation.md
+QWEN.md
+AGENTS.md
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+/ZH-IntegrationPack
