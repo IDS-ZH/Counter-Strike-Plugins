@@ -24,6 +24,8 @@
 #include <multicolors> // Добавлено для цветных сообщений
     #include <admin>       // Добавлено для работы с флагами администраторов
     #include <smlib/smlib>
+#include <files>  
+// Добавлено для функций работы с файлами и директориями (ReadDir, OpenDirectory)
 
 #define PLUGIN_VERSION "5.5.1"
 // --- Глобальные переменные ---
@@ -154,36 +156,72 @@ public void OnPluginEnd()
     if (g_hKVPlayerChoice != null) CloseHandle(g_hKVPlayerChoice);
 }
 
+void AddDirectoryToDownloads(const char[] dirPath) {
+    char path[PLATFORM_MAX_PATH];
+    Handle dir = OpenDirectory(dirPath, true);
+
+    if (dir == INVALID_HANDLE) {
+        PrintToServer("[SM_SKINCHOOSER] ОШИБКА: Не удалось открыть директорию для добавления в загрузки: %s", dirPath);
+        return;
+    }
+
+    FileType type; // Corrected enum type back to FileType
+    char name[PLATFORM_MAX_PATH];
+    while (ReadDirEntry(dir, name, sizeof(name), type)) { // Corrected function call to ReadDirEntry
+        if (StrEqual(name, ".") || StrEqual(name, "..")) {
+            continue;
+        }
+
+        FormatEx(path, sizeof(path), "%s/%s", dirPath, name);
+
+        if (type == FileType_Directory) {
+            AddDirectoryToDownloads(path); // Рекурсивный вызов для подпапок
+        } else if (type == FileType_File) {
+            AddFileToDownloadsTable(path);
+        }
+    }
+    CloseHandle(dir);
+}
+
+
 /**
  * Читает default_skins_download_list.ini и добавляет все файлы и папки
  * в таблицу загрузок, используя smlib. Также прекеширует модели.
  */
 void ProcessDownloadList()
 {
-    char path[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, path, sizeof(path), "configs/sm_skinchooser/default_skins_download_list.ini");
+    char config_path[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, config_path, sizeof(config_path), "configs/sm_skinchooser/default_skins_download_list.ini");
 
-    if (!FileExists(path)) {
+    if (!FileExists(config_path)) {
         PrintToServer("[SM_SKINCHOOSER] Файл 'default_skins_download_list.ini' не найден. Загрузка дополнительных материалов невозможна.");
         return;
     }
 
-    File file = OpenFile(path, "r");
+    File file = OpenFile(config_path, "r");
     if (file == null) {
         LogError("[SM_SKINCHOOSER] Не удалось открыть 'default_skins_download_list.ini'.");
         return;
     }
 
-    char buffer[PLATFORM_MAX_PATH];
-    while (!file.EndOfFile() && file.ReadLine(buffer, sizeof(buffer))) {
-        TrimString(buffer);
+    char line[PLATFORM_MAX_PATH];
+    while (!file.EndOfFile() && file.ReadLine(line, sizeof(line))) {
+        TrimString(line);
         // Игнорируем пустые строки и комментарии
-        if (buffer[0] == '\0' || buffer[0] == ';' || (buffer[0] == '/' && buffer[1] == '/')) {
+        if (line[0] == '\0' || line[0] == ';' || (line[0] == '/' && line[1] == '/')) {
             continue;
         }
 
-        // Используем smlib для добавления файла или папки в таблицу загрузок
-        File_AddToDownloadsTable(buffer, true);
+        // Новая надежная логика: проверяем, папка это или файл
+        if (DirExists(line, true)) {
+            PrintToServer("[SM_SKINCHOOSER] Добавление папки в загрузки: %s", line);
+            AddDirectoryToDownloads(line);
+        } else if (FileExists(line, true)) {
+            PrintToServer("[SM_SKINCHOOSER] Добавление файла в загрузки: %s", line);
+            AddFileToDownloadsTable(line);
+        } else {
+            PrintToServer("[SM_SKINCHOOSER] ОШИБКА: Путь не найден для добавления в загрузки: %s", line);
+        }
     }
 
     delete file;
