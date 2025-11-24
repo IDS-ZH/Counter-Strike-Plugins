@@ -780,6 +780,13 @@ void SetDefaultAudienceByEventType(SoundEventType eventType)
     }
 }
 
+// Format translation phrase for a specific client and expand name tokens
+void FormatLocalizedMessageForClient(const char[] phrase, int client, int param1, int param2, char[] buffer, int maxLen)
+{
+    FormatEx(buffer, maxLen, "%T", phrase, client, param1, param2);
+    ExpandNameTokens(buffer, maxLen, param1, param2);
+}
+
 void ShowMessageToAudience(SoundEventType eventType, int param1, int param2)
 {
     // Return if no message is configured
@@ -787,14 +794,13 @@ void ShowMessageToAudience(SoundEventType eventType, int param1, int param2)
         return;
     }
     
-    // Pre-format the message with player names
-    char sFormattedMessage[256];
-    FormatEx(sFormattedMessage, sizeof(sFormattedMessage), "%t", g_sEventMessages[eventType], param1, param2);
-    ExpandNameTokens(sFormattedMessage, sizeof(sFormattedMessage), param1, param2);
+    // Pre-format a server-localized message for logging
+    char sLogMessage[256];
+    FormatLocalizedMessageForClient(g_sEventMessages[eventType], LANG_SERVER, param1, param2, sLogMessage, sizeof(sLogMessage));
 
     // Log the chat message to the server log if debug level is high enough
     if (g_hDebugLevel != null && g_hDebugLevel.IntValue >= 2) {
-        LogMessage("[SM-SoundManifest-CHAT] %s", sFormattedMessage);
+        LogMessage("[SM-SoundManifest-CHAT] %s", sLogMessage);
     }
 
     // If we're dealing with a client-specific event, only show to that client
@@ -803,38 +809,50 @@ void ShowMessageToAudience(SoundEventType eventType, int param1, int param2)
         AudienceType audience = g_EventAudience[eventType][i];
         if (audience == AUDIENCE_KILLER) {
             if (param1 > 0 && IsClientInGame(param1) && g_bSoundEnabled[param1]) {
-                CPrintToChat(param1, sFormattedMessage);
+                char sClientMessage[256];
+                FormatLocalizedMessageForClient(g_sEventMessages[eventType], param1, param1, param2, sClientMessage, sizeof(sClientMessage));
+                CPrintToChat(param1, sClientMessage);
                 LogDebug(3, "[SM] Sent message to killer: %N", param1);
             }
         } else if (audience == AUDIENCE_VICTIM) {
             if (param2 > 0 && IsClientInGame(param2) && g_bSoundEnabled[param2]) {
-                CPrintToChat(param2, sFormattedMessage);
+                char sClientMessage[256];
+                FormatLocalizedMessageForClient(g_sEventMessages[eventType], param2, param1, param2, sClientMessage, sizeof(sClientMessage));
+                CPrintToChat(param2, sClientMessage);
                 LogDebug(3, "[SM] Sent message to victim: %N", param2);
             }
         } else if (audience == AUDIENCE_KILLER_TEAM) {
             int killerTeam = GetClientTeam(param1);
             for (int client = 1; client <= MaxClients; client++) {
                 if (IsClientInGame(client) && GetClientTeam(client) == killerTeam && g_bSoundEnabled[client]) {
-                    CPrintToChat(client, sFormattedMessage);
+                    char sClientMessage[256];
+                    FormatLocalizedMessageForClient(g_sEventMessages[eventType], client, param1, param2, sClientMessage, sizeof(sClientMessage));
+                    CPrintToChat(client, sClientMessage);
                 }
             }
         } else if (audience == AUDIENCE_VICTIM_TEAM) {
             int victimTeam = GetClientTeam(param2);
             for (int client = 1; client <= MaxClients; client++) {
                 if (IsClientInGame(client) && GetClientTeam(client) == victimTeam && g_bSoundEnabled[client]) {
-                    CPrintToChat(client, sFormattedMessage);
+                    char sClientMessage[256];
+                    FormatLocalizedMessageForClient(g_sEventMessages[eventType], client, param1, param2, sClientMessage, sizeof(sClientMessage));
+                    CPrintToChat(client, sClientMessage);
                 }
             }
         } else if (audience == AUDIENCE_ALL_ALIVE) {
             for (int client = 1; client <= MaxClients; client++) {
                 if (IsClientInGame(client) && IsPlayerAlive(client) && g_bSoundEnabled[client]) {
-                    CPrintToChat(client, sFormattedMessage);
+                    char sClientMessage[256];
+                    FormatLocalizedMessageForClient(g_sEventMessages[eventType], client, param1, param2, sClientMessage, sizeof(sClientMessage));
+                    CPrintToChat(client, sClientMessage);
                 }
             }
         } else if (audience == AUDIENCE_ALL) {
             for (int client = 1; client <= MaxClients; client++) {
                 if (IsClientInGame(client) && g_bSoundEnabled[client]) {
-                    CPrintToChat(client, sFormattedMessage);
+                    char sClientMessage[256];
+                    FormatLocalizedMessageForClient(g_sEventMessages[eventType], client, param1, param2, sClientMessage, sizeof(sClientMessage));
+                    CPrintToChat(client, sClientMessage);
                 }
             }
         }
@@ -946,15 +964,14 @@ void ShowHudMessageToAudience(SoundEventType eventType, int param1, int param2)
     }
     
     // Show to all players
-    char message[256];
     char hudMessageKey[64];
     
     GetHudMessageKey(eventType, hudMessageKey, sizeof(hudMessageKey));
-    FormatEx(message, sizeof(message), "%t", hudMessageKey, param1, param2);
-    ExpandNameTokens(message, sizeof(message), param1, param2);
     
     for (int i = 1; i <= MaxClients; i++) {
         if (IsClientInGame(i) && g_bSoundEnabled[i]) {
+            char message[256];
+            FormatLocalizedMessageForClient(hudMessageKey, i, param1, param2, message, sizeof(message));
             SendHudMessage(i,
                 -1, -1.0, 0.25,   // channel and positions
                 0xFFFFFFFF, 0xFFFFFFFF, // colors (Changed from Magenta to White)
@@ -1330,14 +1347,16 @@ public Action Command_SoundMenu(int client, int args)
     if (client == 0) return Plugin_Handled;
 
     Menu menu = new Menu(Handler_SoundMenu);
-    menu.SetTitle("%t", "SoundMenu_Title");
+    menu.SetTitle("%T", "SoundMenu_Title", client);
 
+    char toggleText[64];
     if (g_bSoundEnabled[client]) {
-        menu.AddItem("toggle", "SoundMenu_ToggleOn");
+        FormatEx(toggleText, sizeof(toggleText), "%T", "SoundMenu_ToggleOn", client);
     } else {
-        menu.AddItem("toggle", "SoundMenu_ToggleOff");
+        FormatEx(toggleText, sizeof(toggleText), "%T", "SoundMenu_ToggleOff", client);
     }
 
+    menu.AddItem("toggle", toggleText);
     menu.ExitButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
     return Plugin_Handled;
