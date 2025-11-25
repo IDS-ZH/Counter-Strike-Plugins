@@ -2,7 +2,6 @@
 
 .vscode/
 *.zip
-.gitignore
 .github
 .ssh
 # Ignore VS Code workspace file
@@ -45,5 +44,9 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-/ZH-IntegrationPack
+
 Список файлов.txt
+
+
+ZH-IntegrationPack/SRCDS-current-modded-catalog
+ZH-IntegrationPack/New Metamod+Sourcemod

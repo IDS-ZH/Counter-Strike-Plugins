@@ -133,3 +133,61 @@
     *   **РћРїРёСЃР°РЅРёРµ:** Р РµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ СЃРѕР·РґР°С‚СЊ РїР»Р°РіРёРЅ-С€Р»СЋР· `web_api.smx` РЅР° РѕСЃРЅРѕРІРµ СЂР°СЃС€РёСЂРµРЅРёСЏ `socket`, РєРѕС‚РѕСЂС‹Р№ Р±СѓРґРµС‚ РїСЂРёРЅРёРјР°С‚СЊ Р»РѕРєР°Р»СЊРЅС‹Рµ HTTP-Р·Р°РїСЂРѕСЃС‹ РѕС‚ Р±СЌРєРµРЅРґР° (PHP/Python), СЂР°Р±РѕС‚Р°СЋС‰РµРіРѕ РЅР° Apache. Р‘СЌРєРµРЅРґ, РІ СЃРІРѕСЋ РѕС‡РµСЂРµРґСЊ, Р±СѓРґРµС‚ РѕР±СЃР»СѓР¶РёРІР°С‚СЊ СЃС‚Р°С‚РёС‡РµСЃРєРёР№ С„СЂРѕРЅС‚РµРЅРґ (HTML/JS), С‡РµСЂРµР· РєРѕС‚РѕСЂС‹Р№ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ СЃРјРѕР¶РµС‚ СѓРїСЂР°РІР»СЏС‚СЊ РЅР°СЃС‚СЂРѕР№РєР°РјРё.
 
 РЎР»РµРґРѕРІР°РЅРёРµ СЌС‚РёРј СЂРµРєРѕРјРµРЅРґР°С†РёСЏРј РїРѕР·РІРѕР»РёС‚ РїСЂРµРІСЂР°С‚РёС‚СЊ С‚РµРєСѓС‰РёР№ РЅР°Р±РѕСЂ РїР»Р°РіРёРЅРѕРІ РІ РєР°С‡РµСЃС‚РІРµРЅРЅСѓСЋ, СѓРЅРёС„РёС†РёСЂРѕРІР°РЅРЅСѓСЋ Рё Р»РµРіРєРѕ РїРѕРґРґРµСЂР¶РёРІР°РµРјСѓСЋ СЃРёСЃС‚РµРјСѓ.
+## Duplication hotspots (summary)
+
+- Client validation helpers are copied across plugins; consolidate into one include (e.g., Z_IsValidClient(client, bool:alive=false, bool:allowBots=false)) and reuse it everywhere.
+- Chat/HUD formatting and colors are duplicated; provide shared wrappers for chat/HUD with a fixed HUD channel and team color palette (T red, CT blue, self white, other gray).
+- CVAR/config bootstrap via AutoExecConfig repeats; add one utility to register CVARs and write to configs/ZH/<plugin>.cfg consistently.
+- Menu/translation strings (toggle on/off, titles) are hardcoded per plugin; move common phrases into one .phrases.txt, keep only keys in code.
+- Download table/path guards (AddFileToDownloadsTable, sound paths) should live in a shared helper to avoid bad paths and duplication.
+- Logging/debug (PrintToServer, LogMessage, custom prefixes) can be unified behind a ZH_Log(level, fmt, ...) that respects a global debug cvar.
+
+## ZH-sys scope (plan)
+
+- ZH-sys — не один гигантский include, а контроллер над набором модулей: общие константы (скорость/длина/цветовые палитры, обозначения сущностей), маршрутизатор настроек.
+- Классы персонажей: интеграция с внешними плагинами/библиотеками (классовые системы из zombie/other mods), единый селектор для админов/игроков.
+- Детект состояния моделей: AFK/hovering/jumping/camping/moving через существующие библиотеки/плагины.
+- Тимкилл-детектор: различать провоцированное убийство (союзник ранее снял N% HP) и случайный тимкилл (гранаты, снайперский промах, близость), с возможностью дернуть специализированный модуль/библиотеку для расчёта.
+- Управление через Web-control panel (NewServer, возможные заимствования из OldServer/SourceBans++): хранить часть настроек в MySQL, давать возможность менять серверные параметры из панели.
+- Документация для каждого модуля ZH-sys, описывать взаимосвязи с внешними библиотеками SourceMod; избегать монолита, строить из нескольких целевых библиотек.
+
+## План по модулю загрузок (ZH-Downloads)
+
+- Базовые варианты для реюза:
+  - SM Downloader (In Development/SourceMod/Legacy/SM-Downloader/.../sm_downloader.sp, версии 1.4/1.5, merged) — умеет рекурсивно добавлять папки и предкешировать.
+  - SP-DirectoryDownloader 1.5.1 — рекурсивный обход каталога, debug-лог, опция precache.
+  - EasyDownloader — упрощённый вариант загрузчика.
+  - smartdm.inc (в нескольких копиях: SM_distributions/1.13-edited, Legacy/Anti-TK-System, Legacy/vip_skins, zephstocks.inc) — функции Downloader_ParseMDL/GetModelFiles/GetMaterialsFromVMT/AddFileToDownloadsTable для автоматической подтяжки зависимостей модели/VMT.
+  - zr/downloads.inc (ZombieReloaded) — читает configs/zr/downloads.txt, валидирует путь, логирует ошибки.
+
+- Требования к единому модулю ZH:
+  - Нормализация путей перед добавлением: заменить "\\" на "/", убрать ведущий слэш, схлопнуть двойные "/", убирать завершающий слэш у директорий.
+  - Один конфиг configs/ZH/downloads.txt или API-обёртка, чтобы плагины не трогали AddFileToDownloadsTable напрямую.
+  - Логировать/отсекать пустые и битые пути, избегать зависаний из-за materials//... (пример SkinChooser-v55).
+  - Возможность дернуть автоматический парсер моделей/VMT (на базе smartdm) и добавлять связанные ресурсы.
+  - FastDownload как целевой канал (sv_downloadurl), без прямой загрузки с игрового сервера.
+
+- Следующий шаг: выбрать основу (SM-Downloader/DirectoryDownloader + smartdm.inc) и оформить ZH-Downloads (include + smx), затем выпилить локальные AddFileToDownloadsTable из плагинов.
+- Долгосрочно: коды кандидатов старые (до ~10 лет), потребуется ревизия на совместимость с текущим MetaMod/SourceMod. Вероятно, итоговый ZH-Downloads будет "франкенштейном" с заимствованными решениями из нескольких проектов, а не прямым переносом.
+
+## New Metamod+Sourcemod notes
+
+- Каталог ZH-IntegrationPack\New Metamod+Sourcemod содержит обновлённые MetaMod 2.0 + SourceMod 1.13. Плагины/библиотеки отсюда допустимо переписывать под более консистентную работу ZH-sys, сохраняя модульность (как в базовых SM плагинах: крупные плагины ссылаются на мелкие includes/модули).
+- Ориентироваться на примеры из стандартных SM плагинов (funcommands и др.), где логика разнесена по вспомогательным includes/модулям.
+- Для сборки плагинов ZH-IntegrationPack использовать компилятор из этого пакета: ZH-IntegrationPack\New Metamod+Sourcemod\addons\sourcemod\scripting\spcomp.exe.
+
+## Web stack (Apache/MySQL) and planned uses
+
+- XAMPP уже установлен: httpd (Apache 2.4) стартует как служба, MySQL доступен. На эту связку планируется повесить:
+  1) Web-control panel для управления сервером: смена режимов, мониторинг игроков, бан/кик, управление ботами/плагинами (вкл/выкл/добавление/перезагрузка), запуск/перезапуск SRCDS. Нужна обёртка, запускающая srcds.exe/srcds_win64.exe с параметрами, сформированными динамически из панели (а не статический start_srcds.cmd).
+  2) FastDownload/статическая раздача зависимостей игрокам через Apache (каталоги могут быть browsable, уже настроено в httpd.conf).
+  3) MOTD: интерактивные HTML-окна при входе и в ходе игры. Учесть примитивный движок MOTD в CS:S (уровень IE6–IE9); не использовать современные API, брать примеры плагинов MOTD из каталога Legacy.
+
+- Каталог ZH-IntegrationPack\SRCDS-current-modded-catalog — копия живого SRCDS (CS:S) с cfg и ddons. После сборки новой ZH-sys/интеграции важно не тянуть конфликты из старой Standalone-конфигурации: либо почистить этот слепок от мусора/старых плагинов, либо собирать целевые cfg/ddons заново для чистой интеграции и облегчения отладки.
+- War Mode (стандарт SM): в New Metamod+Sourcemod/cfg/sourcemod/sm_warmode_on.cfg/sm_warmode_off.cfg админ-меню вызывает загрузку минимального набора плагинов и лок на load. On: unload_all, load_unlock, грузит только basebans/basecommands/admin-flatfile/adminhelp/adminmenu, затем load_lock. Off: load_unlock + plugins refresh. Для ZH-sys можно переопределить эти cfg под свой минимальный профиль (оставить только ZH-core/безопасные модули) и использовать как режим обслуживания/чистой диагностики.
+- Сети (ipconfig /all, для ZH-sys): основная Wi?Fi 172.16.0.0/24 (GW 172.16.0.100), Radmin VPN 26.0.0.0/8 (26.175.144.113), Hyper-V vEthernet: 172.26.96.1/20 (Default Switch), 172.24.192.1/20, 172.17.64.1/20 (Radmin VPN virtual), 172.19.208.1/20 (WSL), 172.31.48.1/20, плюс Teredo/локальные IPv6. Hyper-V виртуалки/виртуальные свичи игнорировать как целевые сегменты; ориентироваться на Wi?Fi LAN и VPN (Radmin). Для ZH-серверов/панели учитывать эти подсети при бинде и firewall.
+- Базовые SM плагины не выключать вслепую: переписать/адаптировать под управление ZH-sys, чтобы исключить конфликты и оставить модульность.
+- Админы/группы: в New Metamod+Sourcemod/addons/sourcemod/configs/admins.cfg перенесены действующие записи из SRCDS-current-modded-catalog (TrueOSmium — Full Admin (z, immunity 99), BSD_Maniac/abicorios — VIP (o, immunity 10)). Держать в актуальном виде при дальнейших миграциях.
+
+- Резервный доступ: в New Metamod+Sourcemod/addons/sourcemod/configs/admins_simple.ini добавлен IP !172.16.0.94 с флагом z (иммунитет 99) как запасной Root на статичном LAN-адресе.
+- .gitignore: убран общий игнор для всего ZH-IntegrationPack, но каталоги ZH-IntegrationPack/SRCDS-current-modded-catalog и ZH-IntegrationPack/New Metamod+Sourcemod оставлены закрытыми.
