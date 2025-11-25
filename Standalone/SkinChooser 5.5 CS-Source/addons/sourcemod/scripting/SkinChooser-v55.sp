@@ -329,12 +329,16 @@ void PrecacheAllMenuModels(KeyValues kv) {
 
 /**
  * Загружает списки моделей для принудительной установки.
+ * Обновлено для поддержки карт-специфичных моделей ботов.
  */
 void LoadForceConfigs()
 {
     g_ForcePlayerCountT = g_ForcePlayerCountCT = 0;
     g_ForceAdminCountT  = g_ForceAdminCountCT  = 0;
     g_ForceBotsCountT   = g_ForceBotsCountCT   = 0;
+
+    char mapName[64];
+    GetCurrentMap(mapName, sizeof(mapName));
 
     if (g_cvarForcePlayerSkin.BoolValue) {
         g_ForcePlayerCountT  = LoadSimpleModelList("configs/sm_skinchooser/force/player_t.ini",  g_ForcePlayerTeamT,  sizeof(g_ForcePlayerTeamT));
@@ -345,8 +349,31 @@ void LoadForceConfigs()
         g_ForceAdminCountCT = LoadSimpleModelList("configs/sm_skinchooser/force/admin_ct.ini", g_ForceAdminTeamCT, sizeof(g_ForceAdminTeamCT));
     }
     if (g_cvarSkinBots.BoolValue) {
-        g_ForceBotsCountT  = LoadSimpleModelList("configs/sm_skinchooser/force/bots_t.ini",  g_ForceBotsTeamT,  sizeof(g_ForceBotsTeamT));
-        g_ForceBotsCountCT = LoadSimpleModelList("configs/sm_skinchooser/force/bots_ct.ini", g_ForceBotsTeamCT, sizeof(g_ForceBotsTeamCT));
+        char mapBotPathT[PLATFORM_MAX_PATH], mapBotPathCT[PLATFORM_MAX_PATH];
+        char defaultBotPathT[] = "configs/sm_skinchooser/force/bots_t.ini";
+        char defaultBotPathCT[] = "configs/sm_skinchooser/force/bots_ct.ini";
+
+        // T-модели для ботов
+        FormatEx(mapBotPathT, sizeof(mapBotPathT), "configs/sm_skinchooser/force/maps/%s_bots_t.ini", mapName);
+        char finalPathT[PLATFORM_MAX_PATH];
+        BuildPath(Path_SM, finalPathT, sizeof(finalPathT), mapBotPathT);
+
+        if (FileExists(finalPathT)) {
+            g_ForceBotsCountT = LoadSimpleModelList(mapBotPathT, g_ForceBotsTeamT, sizeof(g_ForceBotsTeamT));
+        } else {
+            g_ForceBotsCountT = LoadSimpleModelList(defaultBotPathT, g_ForceBotsTeamT, sizeof(g_ForceBotsTeamT));
+        }
+
+        // CT-модели для ботов
+        FormatEx(mapBotPathCT, sizeof(mapBotPathCT), "configs/sm_skinchooser/force/maps/%s_bots_ct.ini", mapName);
+        char finalPathCT[PLATFORM_MAX_PATH];
+        BuildPath(Path_SM, finalPathCT, sizeof(finalPathCT), mapBotPathCT);
+        
+        if (FileExists(finalPathCT)) {
+            g_ForceBotsCountCT = LoadSimpleModelList(mapBotPathCT, g_ForceBotsTeamCT, sizeof(g_ForceBotsTeamCT));
+        } else {
+            g_ForceBotsCountCT = LoadSimpleModelList(defaultBotPathCT, g_ForceBotsTeamCT, sizeof(g_ForceBotsTeamCT));
+        }
     }
 }
 
