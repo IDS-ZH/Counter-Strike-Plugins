@@ -1,0 +1,136 @@
+"Phrases"
+{
+    "Suicide"
+    {
+        "en"    "You committed suicide. Details are not available."
+        "ru"    "Вы совершили самоубийство. Подробности не доступны."
+        "ua"    "Ви вчинили самогубство. Подробиці не доступні."
+        "de"    "Du hast Selbstmord begangen. Details sind nicht verfügbar."
+    }
+    "Killed by"
+    {
+        "en"    "You were killed by"
+        "ru"    "Вас убил"
+        "ua"    "Вас убив"
+        "de"    "Du wurdest getötet von"
+    }
+    "Attacker HP"
+    {
+        "en"    "Attacker HP:"
+        "ru"    "HP атакующего:"
+        "ua"    "HP атакуючого:"
+        "de"    "Angreifer HP:"
+    }
+    "Armor"
+    {
+        "en"    "Armor:"
+        "ru"    "Броня:"
+        "ua"    "Броня:"
+        "de"    "Rüstung:"
+    }
+    "Damage Stats"
+    {
+        "en"    "Damage: %d in %d hits. (%.1f avg)"
+        "ru"    "Урон: %d за %d попаданий. (%.1f avg)"
+        "ua"    "Шкода: %d за %d влучень. (%.1f avg)"
+        "de"    "Schaden: %d in %d Treffern. (%.1f avg)"
+    }
+    "Torso Hits"
+    {
+        "en"    "Torso hits: %d (chest: %d, stomach: %d)"
+        "ru"    "Попаданий в туловище: %d (грудь: %d, живот: %d)"
+        "ua"    "Влучень в тулуб: %d (груди: %d, живіт: %d)"
+        "de"    "Treffer am Oberkörper: %d (Brust: %d, Magen: %d)"
+    }
+    "Head Hits"
+    {
+        "en"    "Headshots:"
+        "ru"    "Попаданий в голову:"
+        "ua"    "Влучень в голову:"
+        "de"    "Kopfschüsse:"
+    }
+    "Arm Hits"
+    {
+        "en"    "Arm hits:"
+        "ru"    "Попаданий в руки:"
+        "ua"    "Влучень в руки:"
+        "de"    "Armtreffer:"
+    }
+    "Leg Hits"
+    {
+        "en"    "Leg hits:"
+        "ru"    "Попаданий в ноги:"
+        "ua"    "Влучень в ноги:"
+        "de"    "Beintreffer:"
+    }
+    "Max Damage"
+    {
+        "en"    "Max damage:"
+        "ru"    "Макс. урон:"
+        "ua"    "Макс. шкода:"
+        "de"    "Max. Schaden:"
+    }
+    "to"
+    {
+        "en"    "to"
+        "ru"    "в"
+        "ua"    "в"
+        "de"    "an"
+    }
+    "Damage List"
+    {
+        "en"    "Damage list:"
+        "ru"    "Список урона:"
+        "ua"    "Список шкоди:"
+        "de"    "Schadensliste:"
+    }
+    "hit_head"
+    {
+        "en"    "head"
+        "ru"    "голову"
+        "ua"    "голову"
+        "de"    "Kopf"
+    }
+    "hit_chest"
+    {
+        "en"    "chest"
+        "ru"    "грудь"
+        "ua"    "груди"
+        "de"    "Brust"
+    }
+    "hit_stomach"
+    {
+        "en"    "stomach"
+        "ru"    "живот"
+        "ua"    "живіт"
+        "de"    "Magen"
+    }
+    "hit_arm"
+    {
+        "en"    "arm"
+        "ru"    "руку"
+        "ua"    "руку"
+        "de"    "Arm"
+    }
+    "hit_leg"
+    {
+        "en"    "leg"
+        "ru"    "ногу"
+        "ua"    "ногу"
+        "de"    "Bein"
+    }
+    "hit_neck"
+    {
+        "en"    "neck"
+        "ru"    "шею"
+        "ua"    "шию"
+        "de"    "Hals"
+    }
+    "hit_body"
+    {
+        "en"    "body"
+        "ru"    "тело"
+        "ua"    "тіло"
+        "de"    "Körper"
+    }
+}

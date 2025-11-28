@@ -1,0 +1,13 @@
+"Phrases"
+{
+    "Your Name"
+    {
+        "#format"		"{1:s}"
+        "ru"		"Имя: {1}"
+    }
+    "Your SteamID"
+    {
+        "#format"		"{1:s}"
+        "ru"		"SteamID: {1}"
+    }
+}
