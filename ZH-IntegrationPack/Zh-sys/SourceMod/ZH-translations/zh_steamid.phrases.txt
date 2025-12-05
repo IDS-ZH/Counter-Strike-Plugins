@@ -1,0 +1,10 @@
+"Phrases"
+{
+    "ZH_SteamID_Message"
+    {
+        "en"    "{green}[ZH]{default} Your SteamID: {lightgreen}%s"
+        "ru"    "{green}[ZH]{default} Vash SteamID: {lightgreen}%s"
+        "uk"    "{green}[ZH]{default} Vash SteamID: {lightgreen}%s"
+        "de"    "{green}[ZH]{default} Deine SteamID: {lightgreen}%s"
+    }
+}

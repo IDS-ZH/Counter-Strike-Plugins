@@ -9,8 +9,9 @@
 #include <multicolors>
 #include <adminmenu>
 #include <adt_trie>
+#include <zh_core>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1.0-zh-sys"
 
 ConVar g_hCvarEnabled;
 ConVar g_hCvarImmortalityMode;
@@ -23,24 +24,28 @@ TopMenu g_hAdminMenu;
 
 bool g_bImmortalityAdmins[MAXPLAYERS + 1];
 
-public Plugin myinfo = 
+public Plugin myinfo =
 {
-    name = "Rule_Health&Armor",
+    name = "ZH-sys Rule_Health&Armor",
     author = "ZloyHohol",
-    description = "Sets health and armor based on admin flags.",
+    description = "Sets health and armor based on admin flags in ZH-sys architecture.",
     version = PLUGIN_VERSION,
     url = "https://github.com/ZloyHohol/Counter-Strike-Plugins"
 };
 
 public void OnPluginStart()
 {
-    g_hCvarEnabled = CreateConVar("sm_rha_enabled", "1", "Enable/Disable the Rule_Health&Armor plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_hCvarImmortalityMode = CreateConVar("sm_rha_admin_immortality_mode", "0", "Global immortality mode for eligible admins (0: Disabled, 1: Invincible).", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_hCvarEnableLogging = CreateConVar("sm_rha_enable_logging", "0", "Enable/Disable logging for the RHA plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    CreateConVar("sm_rha_version", PLUGIN_VERSION, "Rule_Health&Armor plugin version.", FCVAR_NOTIFY | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_DONTRECORD);
+    if (!LibraryExists(ZH_CORE_LIBRARY))
+    {
+        SetFailState("zh_core is required.");
+    }
 
-    LoadTranslations("common.phrases.txt");
-    LoadTranslations("RHA.phrases.txt");
+    g_hCvarEnabled = CreateConVar("zh_rha_enabled", "1", "Enable/Disable the Rule_Health&Armor plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_hCvarImmortalityMode = CreateConVar("zh_rha_admin_immortality_mode", "0", "Global immortality mode for eligible admins (0: Disabled, 1: Invincible).", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_hCvarEnableLogging = CreateConVar("zh_rha_enable_logging", "0", "Enable/Disable logging for the RHA plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    CreateConVar("zh_rha_version", PLUGIN_VERSION, "Rule_Health&Armor plugin version.", FCVAR_NOTIFY | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_DONTRECORD);
+
+    LoadTranslations("zh_rha.phrases.txt");
 
     LoadConfig();
 
@@ -56,6 +61,11 @@ public void OnPluginStart()
     }
 
     RegAdminCmd("sm_rha", Command_RHA, ADMFLAG_GENERIC, "RHA admin menu");
+
+    AutoExecConfig(true, "zh_rha", "sourcemod");
+
+    // Register this module with ZH Core
+    ZH_RegisterModule("rha");
 }
 
 public void OnPluginEnd()
@@ -134,12 +144,12 @@ public int RHAMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 
         if (StrEqual(info, "sm_rha_enabled"))
         {
-            g_hCvarEnabled.BoolValue = !g_hCvarEnabled.BoolValue;
+            g_hCvarEnabled.SetBool(!g_hCvarEnabled.BoolValue);
             RHA_LogAction(param1, -1, "Toggled RHA plugin %s", g_hCvarEnabled.BoolValue ? "On" : "Off");
         }
         else if (StrEqual(info, "sm_rha_admin_immortality_mode"))
         {
-            g_hCvarImmortalityMode.BoolValue = !g_hCvarImmortalityMode.BoolValue;
+            g_hCvarImmortalityMode.SetBool(!g_hCvarImmortalityMode.BoolValue);
             RHA_LogAction(param1, -1, "Toggled RHA immortality %s", g_hCvarImmortalityMode.BoolValue ? "On" : "Off");
         }
 
@@ -202,24 +212,24 @@ void LoadConfig()
 {
     // --- Load Humans Config ---
     char human_path[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, human_path, sizeof(human_path), "configs/RHA_humans.cfg");
+    BuildPath(Path_SM, human_path, sizeof(human_path), "configs/ZH-sys/RHA/RHA_humans.cfg");
 
     g_kvHumans = new KeyValues("Groups");
 
     if (!g_kvHumans.ImportFromFile(human_path))
     {
-        LogError("[RHA] Failed to load or parse config file: %s. Check for syntax errors.", human_path);
+        LogError("[ZH-RHA] Failed to load or parse config file: %s. Check for syntax errors.", human_path);
     }
 
     // --- Load Bots Config ---
     char bot_path[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, bot_path, sizeof(bot_path), "configs/RHA_bots.cfg");
+    BuildPath(Path_SM, bot_path, sizeof(bot_path), "configs/ZH-sys/RHA/RHA_bots.cfg");
 
     g_kvBots = new KeyValues("Bots");
 
     if (!g_kvBots.ImportFromFile(bot_path))
     {
-        LogError("[RHA] Failed to load or parse config file: %s. Check for syntax errors.", bot_path);
+        LogError("[ZH-RHA] Failed to load or parse config file: %s. Check for syntax errors.", bot_path);
     }
 }
 
@@ -238,7 +248,7 @@ KeyValues GetClientGroupSettings(int client, bool isBot)
     }
 
     g_kvHumans.Rewind();
-    
+
     KeyValues kvBestGroup = null;
     int bestImmunity = -1;
     char bestGroupName[64];
@@ -276,7 +286,7 @@ KeyValues GetClientGroupSettings(int client, bool isBot)
             {
                 userIsInThisGroup = true;
             }
-            
+
             if (userIsInThisGroup)
             {
                 GroupId groupId = FindAdmGroup(configGroupName);
@@ -317,7 +327,7 @@ KeyValues GetClientGroupSettings(int client, bool isBot)
             KvCopySubkeys(g_kvHumans, kvBestGroup);
         }
     }
-    
+
     return kvBestGroup;
 }
 
@@ -335,7 +345,7 @@ void ApplyHealthArmorToClient(int client, bool silent)
     char sTeam[16];
     if (team == CS_TEAM_T) strcopy(sTeam, sizeof(sTeam), "Team_T");
     else if (team == CS_TEAM_CT) strcopy(sTeam, sizeof(sTeam), "Team_CT");
-    else 
+    else
     {
         delete kvGroup;
         return;
@@ -407,10 +417,10 @@ void RHA_LogAction(int client, int target, const char[] format, any ...)
     {
         char targetName[MAX_NAME_LENGTH];
         GetClientName(target, targetName, sizeof(targetName));
-        LogMessage("[%s] %s -> %s", clientName, buffer, targetName);
+        LogMessage("[ZH-RHA] [%s] %s -> %s", clientName, buffer, targetName);
     }
     else
     {
-        LogMessage("[%s] %s", clientName, buffer);
+        LogMessage("[ZH-RHA] [%s] %s", clientName, buffer);
     }
 }

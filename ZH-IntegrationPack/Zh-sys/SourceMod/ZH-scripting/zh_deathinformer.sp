@@ -1,16 +1,16 @@
 /****************************************************************
 *****************************************************************
 *                                                               *
-*   Death Informer Enhanced                                     *
+*   ZH-sys Death Informer Enhanced                            *
 *                                                               *
-*   Author: Qwen for ZloyHohol (Fixed by Gemini)                *
+*   Author: Qwen for ZloyHohol (Fixed by Gemini)               *
 *                                                               *
 *   Description:                                                *
 *   An enhanced version of the Death Informer plugin with       *
 *   improved damage tracking, proper shotgun damage             *
 *   aggregation, protection against bypass, and configurable    *
 *   display settings. This version uses translation files and   *
-*   the multicolors library.                                    *
+*   the multicolors library in ZH-sys architecture.             *
 *                                                               *
 *****************************************************************
 ****************************************************************/
@@ -23,6 +23,7 @@
 #include <clientprefs>
 #include <string>
 #include <multicolors>
+#include <zh_core>
 
 #define MAX_HISTORY 20
 
@@ -59,28 +60,38 @@ int g_iDamageIndex[MAXPLAYERS + 1][MAXPLAYERS + 1];
 
 public Plugin myinfo =
 {
-    name = "Death Informer Enhanced",
+    name = "ZH-sys Death Informer Enhanced",
     author = "Qwen for ZloyHohol (Fixed by Gemini)",
-    description = "Enhanced version of Death Informer with detailed damage tracking and shotgun aggregation.",
-    version = "1.3"
+    description = "Enhanced version of Death Informer with detailed damage tracking and shotgun aggregation in ZH-sys architecture.",
+    version = "1.4.0-zh-sys"
 };
 
 // --- Plugin Forwards ---
 
 public void OnPluginStart()
 {
-    g_hHistoryTime = CreateConVar("sm_deathinformer_history_time", "30.0", "How long (in seconds) to track damage history from an attacker before death. Min 10.0, Max 300.0", FCVAR_NONE, true, 10.0, true, 300.0);
-    g_hEnableDetailedInfo = CreateConVar("sm_deathinformer_detail_info", "1", "Enable detailed information about hit locations and damage types (0 = off, 1 = on)", FCVAR_NONE, true, 0.0, true, 1.0);
-    g_hEnableShotgunAggregation = CreateConVar("sm_deathinformer_shotgun_agg", "1", "Enable aggregation of shotgun pellet damage from a single shot (0 = off, 1 = on)", FCVAR_NONE, true, 0.0, true, 1.0);
-
-    if (!LoadTranslations("deathinformer.phrases.txt"))
+    if (!LibraryExists(ZH_CORE_LIBRARY))
     {
-        LogError("Could not load translation file 'deathinformer.phrases.txt'. This plugin will not work correctly without it.");
+        SetFailState("zh_core is required.");
+    }
+
+    g_hHistoryTime = CreateConVar("zh_deathinformer_history_time", "30.0", "How long (in seconds) to track damage history from an attacker before death. Min 10.0, Max 300.0", FCVAR_NONE, true, 10.0, true, 300.0);
+    g_hEnableDetailedInfo = CreateConVar("zh_deathinformer_detail_info", "1", "Enable detailed information about hit locations and damage types (0 = off, 1 = on)", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_hEnableShotgunAggregation = CreateConVar("zh_deathinformer_shotgun_agg", "1", "Enable aggregation of shotgun pellet damage from a single shot (0 = off, 1 = on)", FCVAR_NONE, true, 0.0, true, 1.0);
+
+    if (!LoadTranslations("zh_deathinformer.phrases.txt"))
+    {
+        LogError("Could not load translation file 'zh_deathinformer.phrases.txt'. This plugin will not work correctly without it.");
     }
 
     HookEvent("player_hurt", OnPlayerHurt, EventHookMode_Post);
     HookEvent("player_death", OnPlayerDeath, EventHookMode_Post);
     HookEvent("round_start", OnRoundStart, EventHookMode_Post);
+
+    AutoExecConfig(true, "zh_deathinformer", "sourcemod");
+
+    // Register this module with ZH Core
+    ZH_RegisterModule("deathinformer");
 }
 
 public void OnMapStart()

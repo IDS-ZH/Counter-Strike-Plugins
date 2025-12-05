@@ -1,34 +1,57 @@
-﻿#include <sourcemod>
+#pragma semicolon 1
+#pragma newdecls required
+
+#include <sourcemod>
 #include <cstrike>
 #include <sdktools>
 #include <easy_hudmessage>
 #include <clientprefs>
+#include <zh_core>
 
-#define PROJECT_FULLNAME "ShowDamage_MultiColour"
+#define PROJECT_FULLNAME "ZH-sys ShowDamage_MultiColour"
 
+ConVar g_CvarEnabled;
 Handle g_hCookie;
 char StyleShowDamage[MAXPLAYERS + 1][64];
 
-public Plugin myinfo = { name = PROJECT_FULLNAME, author = "Ravskiy1 & Gemini", version = "0.2", };
+public Plugin myinfo = {
+    name = PROJECT_FULLNAME,
+    author = "Ravskiy1 & Gemini",
+    version = "0.3.0-zh-sys",
+    url = "https://github.com/ZloyHohol/Counter-Strike-Plugins"
+};
 
 public void OnPluginStart()
 {
-    g_hCookie = RegClientCookie("SSD", "Style ShowDamage", CookieAccess_Private);
-    
+    if (!LibraryExists(ZH_CORE_LIBRARY))
+    {
+        SetFailState("zh_core is required.");
+    }
+
+    g_CvarEnabled = CreateConVar("zh_showdamage_enabled", "1", "Enable/Disable the ShowDamage plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    CreateConVar("zh_showdamage_version", myinfo.version, "ZH ShowDamage plugin version.", FCVAR_NOTIFY | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_DONTRECORD);
+
+    g_hCookie = RegClientCookie("zh_ssd", "ZH Style ShowDamage", CookieAccess_Private);
+
     RegConsoleCmd("sm_sd", ShowDamageMenu);
     RegConsoleCmd("sm_showdamage", ShowDamageMenu);
     RegConsoleCmd("sm_урон", ShowDamageMenu);
     RegConsoleCmd("sm_показатьурон", ShowDamageMenu);
-    
-    for (int i; ++i <= MaxClients;)
+
+    for (int i = 1; i <= MaxClients; i++)
     {
         if (!IsClientInGame(i) || IsFakeClient(i) || !AreClientCookiesCached(i))
             continue;
 
         OnClientCookiesCached(i);
     }
-    
+
     HookEvent("player_hurt", OnPlayerHurt, EventHookMode_Post);
+
+    AutoExecConfig(true, "zh_showdamage", "sourcemod");
+
+    // Register this module with ZH Core
+    ZH_RegisterModule("showdamage");
 }
 
 public Action ShowDamageMenu(int iClient, int args)
@@ -58,6 +81,8 @@ public void OnClientDisconnect(int iClient) {
 
 public void OnPlayerHurt(Event hEvent, const char[] sEvName, bool dDontBroadcast)
 {
+    if (!g_CvarEnabled.BoolValue) return;
+
     int iAttacker = GetClientOfUserId(hEvent.GetInt("attacker"));
     int iVictim = GetClientOfUserId(hEvent.GetInt("userid"));
     int iDamage = hEvent.GetInt("dmg_health");
@@ -65,7 +90,7 @@ public void OnPlayerHurt(Event hEvent, const char[] sEvName, bool dDontBroadcast
     int iArmor = GetClientArmor(iVictim);
     char cHealth[32];
     char cArmor[32];
-    
+
     if (0 < iAttacker <= MaxClients && !IsFakeClient(iAttacker))
     {
         int iVictimTeam = (iVictim > 0 && IsClientInGame(iVictim)) ? GetClientTeam(iVictim) : 0;
@@ -105,36 +130,37 @@ public void OnPlayerHurt(Event hEvent, const char[] sEvName, bool dDontBroadcast
         if(iArmor > 0) FormatEx(cArmor, sizeof(cArmor), "%i", iArmor);
         else FormatEx(cArmor, sizeof(cArmor), "0");
 
-        if(StrEqual(StyleShowDamage[iAttacker], "NewStyle")) 
+        if(StrEqual(StyleShowDamage[iAttacker], "NewStyle"))
         {
             char sHudMessage[256];
             FormatEx(sHudMessage, sizeof(sHudMessage), "%s\nDamage -%i | HP %s | Armor %s", victimName, iDamage, cHealth, cArmor);
             SendHudMessage(iAttacker, HUD_CHANNEL, -1.0, -0.6, hudColor, 0x333333FF, 0, 0.3, 1.0, 1.0, 2.0, sHudMessage);
         }
-        else if (StrEqual(StyleShowDamage[iAttacker], "OldStyle")) 
+        else if (StrEqual(StyleShowDamage[iAttacker], "OldStyle"))
         {
             PrintCenterText(iAttacker, "\nDamage -%i | HP %s | Armor %s", iDamage, cHealth, cArmor);
         }
     }
-} 
+}
+
 public void StyleShowDamageMenu(int iClient)
 {
     Menu hStyleShowDamageMenu = new Menu(MenuHandler_hStyleShowDamageMenu);
-    
+
     hStyleShowDamageMenu.ExitBackButton = false;
     hStyleShowDamageMenu.ExitButton = true;
-    
-    hStyleShowDamageMenu.SetTitle("✖ Style Show Damage ✖\n ");
-    
+
+    hStyleShowDamageMenu.SetTitle("✖ ZH-Style Show Damage ✖\n ");
+
     if (StrEqual(StyleShowDamage[iClient], "NewStyle", false)) hStyleShowDamageMenu.AddItem("", "Новый [✓]", ITEMDRAW_DISABLED);
     else hStyleShowDamageMenu.AddItem("", "Новый [✕]", ITEMDRAW_DEFAULT);
-    
+
     if (StrEqual(StyleShowDamage[iClient], "OldStyle", false)) hStyleShowDamageMenu.AddItem("", "Старый [✓]", ITEMDRAW_DISABLED);
     else hStyleShowDamageMenu.AddItem("", "Старый [✕]", ITEMDRAW_DEFAULT);
-    
+
     if (StrEqual(StyleShowDamage[iClient], "OffStyle", false)) hStyleShowDamageMenu.AddItem("", "Отключить [✓]", ITEMDRAW_DISABLED);
     else hStyleShowDamageMenu.AddItem("", "Отключить [✕]", ITEMDRAW_DEFAULT);
-    
+
     hStyleShowDamageMenu.Display(iClient, 30);
 }
 
@@ -149,7 +175,7 @@ public int MenuHandler_hStyleShowDamageMenu(Menu hStyleShowDamageMenu, MenuActio
             {
                  case 0: { SetClientCookie(iClient, g_hCookie, "NewStyle"); SendHudMessage(iClient, 6, -1.0, -0.6, 0x007FFFFF, 0x333333FF, 0, 0.3, 1.0, 1.0, 2.0, "%N\nDamage -%i | HP %i/Armor", iClient, GetRandomInt(1, 100)); }
                  case 1: { SetClientCookie(iClient, g_hCookie, "OldStyle"); PrintCenterText(iClient, "Damage -%i | HP %i/Armor", GetRandomInt(1, 100), GetRandomInt(1, 100)); }
-                 case 2: SetClientCookie(iClient, g_hCookie, "OffStyle"); 
+                 case 2: SetClientCookie(iClient, g_hCookie, "OffStyle");
             }
             OnClientCookiesCached(iClient);
             StyleShowDamageMenu(iClient);

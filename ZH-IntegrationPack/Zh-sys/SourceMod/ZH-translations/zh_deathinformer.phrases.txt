@@ -1,0 +1,136 @@
+"Phrases"
+{
+    "Suicide"
+    {
+        "en"    "You committed suicide. Details are not available."
+        "ru"    "Suicide (details unavailable)."
+        "uk"    "Suicide (details unavailable)."
+        "de"    "Du hast Selbstmord begangen. Details nicht verfuegbar."
+    }
+    "Killed by"
+    {
+        "en"    "You were killed by"
+        "ru"    "You were killed by"
+        "uk"    "You were killed by"
+        "de"    "Du wurdest getoetet von"
+    }
+    "Attacker HP"
+    {
+        "en"    "Attacker HP:"
+        "ru"    "Attacker HP:"
+        "uk"    "Attacker HP:"
+        "de"    "Angreifer HP:"
+    }
+    "Armor"
+    {
+        "en"    "Armor:"
+        "ru"    "Armor:"
+        "uk"    "Armor:"
+        "de"    "Ruestung:"
+    }
+    "Damage Stats"
+    {
+        "en"    "Damage: %d in %d hits. (%.1f avg)"
+        "ru"    "Damage: %d in %d hits. (%.1f avg)"
+        "uk"    "Damage: %d in %d hits. (%.1f avg)"
+        "de"    "Schaden: %d in %d Treffern. (%.1f Schnitt)"
+    }
+    "Torso Hits"
+    {
+        "en"    "Torso hits: %d (chest: %d, stomach: %d)"
+        "ru"    "Torso hits: %d (chest: %d, stomach: %d)"
+        "uk"    "Torso hits: %d (chest: %d, stomach: %d)"
+        "de"    "Oberkoerper Treffer: %d (Brust: %d, Bauch: %d)"
+    }
+    "Head Hits"
+    {
+        "en"    "Head hits:"
+        "ru"    "Head hits:"
+        "uk"    "Head hits:"
+        "de"    "Kopf Treffer:"
+    }
+    "Arm Hits"
+    {
+        "en"    "Arm hits:"
+        "ru"    "Arm hits:"
+        "uk"    "Arm hits:"
+        "de"    "Arm Treffer:"
+    }
+    "Leg Hits"
+    {
+        "en"    "Leg hits:"
+        "ru"    "Leg hits:"
+        "uk"    "Leg hits:"
+        "de"    "Bein Treffer:"
+    }
+    "Max Damage"
+    {
+        "en"    "Max damage"
+        "ru"    "Max damage"
+        "uk"    "Max damage"
+        "de"    "Max Schaden"
+    }
+    "to"
+    {
+        "en"    "to"
+        "ru"    "to"
+        "uk"    "to"
+        "de"    "zu"
+    }
+    "Damage List"
+    {
+        "en"    "Damage list"
+        "ru"    "Damage list"
+        "uk"    "Damage list"
+        "de"    "Schaden Liste"
+    }
+    "hit_head"
+    {
+        "en"    "head"
+        "ru"    "head"
+        "uk"    "head"
+        "de"    "Kopf"
+    }
+    "hit_chest"
+    {
+        "en"    "chest"
+        "ru"    "chest"
+        "uk"    "chest"
+        "de"    "Brust"
+    }
+    "hit_stomach"
+    {
+        "en"    "stomach"
+        "ru"    "stomach"
+        "uk"    "stomach"
+        "de"    "Bauch"
+    }
+    "hit_arm"
+    {
+        "en"    "arm"
+        "ru"    "arm"
+        "uk"    "arm"
+        "de"    "Arm"
+    }
+    "hit_leg"
+    {
+        "en"    "leg"
+        "ru"    "leg"
+        "uk"    "leg"
+        "de"    "Bein"
+    }
+    "hit_neck"
+    {
+        "en"    "neck"
+        "ru"    "neck"
+        "uk"    "neck"
+        "de"    "Hals"
+    }
+    "hit_body"
+    {
+        "en"    "body"
+        "ru"    "body"
+        "uk"    "body"
+        "de"    "Koerper"
+    }
+}

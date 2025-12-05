@@ -11,3 +11,11 @@
 ## 2025-12-04
 - [14:00] Further analysis of SoundManifest.sp and SmokeBombCombo-V3.5.sp completed, refactoring plans documented in accordance with ZH-sys integration requirements.
 - [14:15] Updated All_Docs.md with information about standardized plugin naming conventions, configuration paths, and measurement units as required for ZH-sys framework.
+
+## 2025-12-05
+- [09:00] Identified architectural inconsistency: zh_dragonbullet.sp existed separately from zh_ammocontrol.sp against modular design principles
+- [09:15] Corrected architecture: maintained separate modules for distinct functionalities (ammo control vs visual/fire effects) while ensuring proper integration
+- [09:30] Created proper zh_dragonbullet.sp module with integrated functionality but distinct purpose from zh_ammocontrol
+- [09:45] Updated All_Docs.md and README.md to reflect corrected modular architecture with separate but integrated modules
+- [09:50] Created configuration file for zh_dragonbullet module under configs/ZH-sys/DragonBullet/
+- [09:55] Verified all module configurations and paths are consistent with ZH-sys framework standards
