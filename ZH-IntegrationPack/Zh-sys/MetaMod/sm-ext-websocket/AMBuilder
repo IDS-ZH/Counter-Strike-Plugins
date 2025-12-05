@@ -1,0 +1,46 @@
+# vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
+import os
+
+ixwebsocket = builder.Build('third_party/ixwebsocket/AMBuilder')
+libz = builder.Build('third_party/zlib/AMBuilder')
+
+for cxx in builder.targets:
+  binary = Extension.Library(builder, cxx, 'websocket.ext')
+  arch = binary.compiler.target.arch
+
+  binary.sources += [
+    'src/extension.cpp',
+    'src/ws_client.cpp',
+    'src/ws_server.cpp',
+    'src/http_request.cpp',
+    'src/http_natives.cpp',
+    'src/ws_natives.cpp',
+    'src/ws_natives_server.cpp',
+    os.path.join(Extension.sm_root, 'public', 'smsdk_ext.cpp'),
+  ]
+
+  binary.compiler.includes += [
+    os.path.join(builder.sourcePath, 'src'),
+    os.path.join(builder.sourcePath, 'public'),
+    os.path.join(builder.sourcePath, 'third_party', 'ixwebsocket'),
+    os.path.join(builder.sourcePath, 'third_party', 'zlib'),
+  ]
+
+  binary.compiler.postlink += [
+    ixwebsocket[arch].binary,
+    libz[arch].binary,
+  ]
+
+  if binary.compiler.target.platform == 'linux':
+    binary.compiler.postlink += [
+      '-lssl',
+    ]
+  elif binary.compiler.target.platform == 'windows':
+    binary.compiler.postlink += [
+      'ws2_32.lib',
+      'crypt32.lib',
+      os.path.join(builder.sourcePath, 'third_party', 'openssl', 'lib', 'libssl_static_{}.lib'.format(arch)),
+      os.path.join(builder.sourcePath, 'third_party', 'openssl', 'lib', 'libcrypto_static_{}.lib'.format(arch)),
+   ]
+
+  Extension.extensions += [builder.Add(binary)]

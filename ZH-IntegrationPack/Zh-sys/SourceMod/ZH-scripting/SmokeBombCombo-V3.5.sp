@@ -1,4 +1,4 @@
-#pragma semicolon 1
+﻿#pragma semicolon 1
 #pragma newdecls required
 
 #include <sourcemod>
@@ -52,7 +52,7 @@ public Plugin myinfo =
 {
     name        = "SmokeBomb Combo V3.5",
     author      = "ZloyHohol",
-    description = "Простой, надёжный Токсичный дым с меню и само-очистками",
+    description = "РџСЂРѕСЃС‚РѕР№, РЅР°РґС‘Р¶РЅС‹Р№ РўРѕРєСЃРёС‡РЅС‹Р№ РґС‹Рј СЃ РјРµРЅСЋ Рё СЃР°РјРѕ-РѕС‡РёСЃС‚РєР°РјРё",
     version     = PLUGIN_VERSION
 };
 
@@ -63,25 +63,25 @@ public void OnPluginStart()
 {
     g_Smokes = new ArrayList(sizeof(SmokeData));
 
-    g_hEnabled         = CreateConVar("sm_sbc_enabled", "1", "Включить/выключить плагин", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_hDamageEnabled   = CreateConVar("sm_sbc_damage_enabled", "1", "Включить урон дымом", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_hDamageAmount    = CreateConVar("sm_sbc_damage_amount", "15", "Урон за тик", FCVAR_NOTIFY, true, 1.0, true, 100.0);
-    g_hDamageInterval  = CreateConVar("sm_sbc_damage_interval", "1.0", "Интервал урона (сек)", FCVAR_NOTIFY, true, 1.0, true, 10.0);
-    g_hAllowTeamDamage = CreateConVar("sm_sbc_teammate_damage", "0", "Урон по своим (0/1), игнорирует mp_friendlyfire при 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_hEnabled         = CreateConVar("sm_sbc_enabled", "1", "Р’РєР»СЋС‡РёС‚СЊ/РІС‹РєР»СЋС‡РёС‚СЊ РїР»Р°РіРёРЅ", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_hDamageEnabled   = CreateConVar("sm_sbc_damage_enabled", "1", "Р’РєР»СЋС‡РёС‚СЊ СѓСЂРѕРЅ РґС‹РјРѕРј", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_hDamageAmount    = CreateConVar("sm_sbc_damage_amount", "15", "РЈСЂРѕРЅ Р·Р° С‚РёРє", FCVAR_NOTIFY, true, 1.0, true, 100.0);
+    g_hDamageInterval  = CreateConVar("sm_sbc_damage_interval", "1.0", "РРЅС‚РµСЂРІР°Р» СѓСЂРѕРЅР° (СЃРµРє)", FCVAR_NOTIFY, true, 1.0, true, 10.0);
+    g_hAllowTeamDamage = CreateConVar("sm_sbc_teammate_damage", "0", "РЈСЂРѕРЅ РїРѕ СЃРІРѕРёРј (0/1), РёРіРЅРѕСЂРёСЂСѓРµС‚ mp_friendlyfire РїСЂРё 1", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
-    g_hColorT          = CreateConVar("sm_sbc_color_t", "255 0 0", "Цвет дыма для T (R G B)");
-    g_hColorCT         = CreateConVar("sm_sbc_color_ct", "0 0 255", "Цвет дыма для CT (R G B)");
-    g_hColorMode       = CreateConVar("sm_sbc_colormode", "0", "0=командные цвета, 1=override", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    g_hOverrideColor   = CreateConVar("sm_sbc_override_color", "0 0 0", "Цвет override (R G B)");
+    g_hColorT          = CreateConVar("sm_sbc_color_t", "255 0 0", "Р¦РІРµС‚ РґС‹РјР° РґР»СЏ T (R G B)");
+    g_hColorCT         = CreateConVar("sm_sbc_color_ct", "0 0 255", "Р¦РІРµС‚ РґС‹РјР° РґР»СЏ CT (R G B)");
+    g_hColorMode       = CreateConVar("sm_sbc_colormode", "0", "0=РєРѕРјР°РЅРґРЅС‹Рµ С†РІРµС‚Р°, 1=override", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    g_hOverrideColor   = CreateConVar("sm_sbc_override_color", "0 0 0", "Р¦РІРµС‚ override (R G B)");
 
     HookEvent("smokegrenade_detonate", Event_SmokeDetonate, EventHookMode_Pre);
     HookEvent("round_end", Event_RoundEnd, EventHookMode_Post);
     HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 
-    RegConsoleCmd("sbc", Command_SBC, "Открыть меню SBC");
-    RegConsoleCmd("sm_sbc", Command_SBC, "Открыть меню SBC");
+    RegConsoleCmd("sbc", Command_SBC, "РћС‚РєСЂС‹С‚СЊ РјРµРЅСЋ SBC");
+    RegConsoleCmd("sm_sbc", Command_SBC, "РћС‚РєСЂС‹С‚СЊ РјРµРЅСЋ SBC");
 
-    PrintToServer("[SBC] v%s загружен", PLUGIN_VERSION);
+    PrintToServer("[SBC] v%s Р·Р°РіСЂСѓР¶РµРЅ", PLUGIN_VERSION);
     AutoExecConfig(true, "SM_SBC-v3.5");
     
 
@@ -99,7 +99,7 @@ AddFileToDownloadsTable("sound/player/cough-4.wav");
 }
 public void OnMapEnd()
 {
-    // Полная очистка при смене карты
+    // РџРѕР»РЅР°СЏ РѕС‡РёСЃС‚РєР° РїСЂРё СЃРјРµРЅРµ РєР°СЂС‚С‹
     CleanupAllSmokes(true);
 }
 
@@ -126,7 +126,7 @@ static void PushSmoke(int ownerUserId, int smokeEnt, int lightEnt)
         SmokeData old;
         g_Smokes.GetArray(0, old, sizeof(old));
         if (old.dmgTimer != null) { KillTimer(old.dmgTimer); }
-        // Свет можно убить мягко
+        // РЎРІРµС‚ РјРѕР¶РЅРѕ СѓР±РёС‚СЊ РјСЏРіРєРѕ
         int l = EntRefToEntIndex(old.lightRef);
         if (l != INVALID_ENT_REFERENCE && IsValidEntity(l)) { AcceptEntityInput(l, "Kill"); }
         g_Smokes.Erase(0);
@@ -240,7 +240,7 @@ public Action Event_SmokeDetonate(Event event, const char[] name, bool dontBroad
 
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-    // Мягкая очистка: выключить свет, но оставить дым жить по своему TTL
+    // РњСЏРіРєР°СЏ РѕС‡РёСЃС‚РєР°: РІС‹РєР»СЋС‡РёС‚СЊ СЃРІРµС‚, РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ РґС‹Рј Р¶РёС‚СЊ РїРѕ СЃРІРѕРµРјСѓ TTL
     for (int i = g_Smokes.Length - 1; i >= 0; i--)
     {
         SmokeData d;
@@ -254,7 +254,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
 public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 {
-    // Жёсткая очистка — по требованию: полностью деактивировать и убрать
+    // Р–С‘СЃС‚РєР°СЏ РѕС‡РёСЃС‚РєР° вЂ” РїРѕ С‚СЂРµР±РѕРІР°РЅРёСЋ: РїРѕР»РЅРѕСЃС‚СЊСЋ РґРµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊ Рё СѓР±СЂР°С‚СЊ
     CleanupAllSmokes(true);
     return Plugin_Continue;
 }
@@ -265,14 +265,14 @@ public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 public void OnClientDisconnect(int client)
 {
     int uid = GetClientUserId(client);
-    // Деактивировать все дымовухи этого владельца — плагин больше не трогает их (как просил)
+    // Р”РµР°РєС‚РёРІРёСЂРѕРІР°С‚СЊ РІСЃРµ РґС‹РјРѕРІСѓС…Рё СЌС‚РѕРіРѕ РІР»Р°РґРµР»СЊС†Р° вЂ” РїР»Р°РіРёРЅ Р±РѕР»СЊС€Рµ РЅРµ С‚СЂРѕРіР°РµС‚ РёС… (РєР°Рє РїСЂРѕСЃРёР»)
     for (int i = g_Smokes.Length - 1; i >= 0; i--)
     {
         SmokeData d;
         g_Smokes.GetArray(i, d, sizeof(d));
         if (d.ownerUserId == uid)
         {
-            // Полная деактивация (без обязательного Kill самого дыма — можно оставить миру)
+            // РџРѕР»РЅР°СЏ РґРµР°РєС‚РёРІР°С†РёСЏ (Р±РµР· РѕР±СЏР·Р°С‚РµР»СЊРЅРѕРіРѕ Kill СЃР°РјРѕРіРѕ РґС‹РјР° вЂ” РјРѕР¶РЅРѕ РѕСЃС‚Р°РІРёС‚СЊ РјРёСЂСѓ)
             DeactivateSmokeByIndex(i, true);
         }
     }
@@ -283,7 +283,7 @@ public void OnClientDisconnect(int client)
 // ----------------------------
 public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
 {
-    // Найти запись
+    // РќР°Р№С‚Рё Р·Р°РїРёСЃСЊ
     int idx = FindSmokeIndexByEntRef(smokeEntRef);
     if (idx == -1)
     {
@@ -301,7 +301,7 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
         return Plugin_Stop;
     }
 
-    // Дым всё ещё существует?
+    // Р”С‹Рј РІСЃС‘ РµС‰С‘ СЃСѓС‰РµСЃС‚РІСѓРµС‚?
     int smokeEnt = EntRefToEntIndex(d.entRef);
     if (smokeEnt == INVALID_ENT_REFERENCE || !IsValidEntity(smokeEnt))
     {
@@ -309,14 +309,14 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
         return Plugin_Stop;
     }
 
-    // Если урон отключён — таймер можно мягко остановить
+    // Р•СЃР»Рё СѓСЂРѕРЅ РѕС‚РєР»СЋС‡С‘РЅ вЂ” С‚Р°Р№РјРµСЂ РјРѕР¶РЅРѕ РјСЏРіРєРѕ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ
     if (!g_hDamageEnabled.BoolValue)
     {
         DeactivateSmokeByIndex(idx, false);
         return Plugin_Stop;
     }
 
-    // Позиция дыма
+    // РџРѕР·РёС†РёСЏ РґС‹РјР°
     float smokePos[3];
     GetEntPropVector(smokeEnt, Prop_Data, "m_vecOrigin", smokePos);
 
@@ -325,12 +325,12 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
     float damage = g_hDamageAmount.FloatValue;
     int ownerTeam = (owner > 0 && IsClientInGame(owner)) ? GetClientTeam(owner) : 0;
 
-    // Обход всех игроков
+    // Цикл: обходим всех игроков
     for (int i = 1; i <= MaxClients; i++)
     {
         if (!IsClientInGame(i) || !IsPlayerAlive(i)) { continue; }
 
-        // Если тимдамаг выключен — защищаем своих
+        // Пропускаем союзников, если тимдамаг выключен
         if (!allowTeamDamage && owner > 0 && IsClientInGame(owner) && GetClientTeam(i) == ownerTeam)
         {
             continue;
@@ -343,8 +343,8 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
         {
             if (owner > 0 && IsClientInGame(owner))
             {
-                // Тимдамаг включён → атакер=0 (игнорируем mp_friendlyfire)
-                // Тимдамаг выключён → атакер=owner (чтобы засчитался на владельца)
+                // Тимдамаг включен -> attacker = 0 (игнорируем mp_friendlyfire)
+                // Тимдамаг выключен -> attacker = owner (чтобы урон записался на владельца)
                 SDKHooks_TakeDamage(i, smokeEnt, owner, damage, DMG_POISON);
                 // Выбираем случайный кашель
                 int rnd = GetRandomInt(1, 4);
@@ -357,7 +357,7 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
             }
             else
             {
-                // Владелец вышел → деактивируем немедленно «плагин больше не действует»
+                // Владелец вышел - деактивируем немедленно (плагин больше не действует)
                 DeactivateSmokeByIndex(idx, true);
                 return Plugin_Stop;
             }
@@ -403,33 +403,33 @@ public Action Command_SBC(int client, int args)
 static void ShowSBCMenu(int client)
 {
     Menu m = CreateMenu(MenuHandler_SBC);
-    m.SetTitle("SmokeBomb Combo — базовое меню");
+    m.SetTitle("SmokeBomb Combo вЂ” Р±Р°Р·РѕРІРѕРµ РјРµРЅСЋ");
     m.ExitButton = true;
 
     char line[64];
 
-    Format(line, sizeof(line), "Плагин: %s", g_hEnabled.BoolValue ? "Включен" : "Выключен");
+    Format(line, sizeof(line), "РџР»Р°РіРёРЅ: %s", g_hEnabled.BoolValue ? "Р’РєР»СЋС‡РµРЅ" : "Р’С‹РєР»СЋС‡РµРЅ");
     m.AddItem("toggle_plugin", line);
 
-    Format(line, sizeof(line), "Урон дымом: %s", g_hDamageEnabled.BoolValue ? "Включен" : "Выключен");
+    Format(line, sizeof(line), "РЈСЂРѕРЅ РґС‹РјРѕРј: %s", g_hDamageEnabled.BoolValue ? "Р’РєР»СЋС‡РµРЅ" : "Р’С‹РєР»СЋС‡РµРЅ");
     m.AddItem("toggle_damage", line);
 
-    Format(line, sizeof(line), "Урон по своим: %s", g_hAllowTeamDamage.BoolValue ? "Включен" : "Выключен");
+    Format(line, sizeof(line), "РЈСЂРѕРЅ РїРѕ СЃРІРѕРёРј: %s", g_hAllowTeamDamage.BoolValue ? "Р’РєР»СЋС‡РµРЅ" : "Р’С‹РєР»СЋС‡РµРЅ");
     m.AddItem("toggle_teammate", line);
 
-    Format(line, sizeof(line), "Режим цвета: %s", g_hColorMode.IntValue == 0 ? "Командный" : "Override");
+    Format(line, sizeof(line), "Р РµР¶РёРј С†РІРµС‚Р°: %s", g_hColorMode.IntValue == 0 ? "РљРѕРјР°РЅРґРЅС‹Р№" : "Override");
     m.AddItem("toggle_colormode", line);
 
     if (g_hColorMode.IntValue == 1)
     {
-        m.AddItem("color_black",    "Цвет: Чёрный");
-        m.AddItem("color_white",    "Цвет: Белый");
-        m.AddItem("color_orange",   "Цвет: Оранжевый");
-        m.AddItem("color_red",      "Цвет: Красный");
-        m.AddItem("color_blue",     "Цвет: Синий");
-        m.AddItem("color_brown",    "Цвет: Коричневый");
-        m.AddItem("color_purple",   "Цвет: Пурпурный");
-        m.AddItem("color_moss",     "Цвет: Мховый (тёмно-зелёный)");
+        m.AddItem("color_black",    "Р¦РІРµС‚: Р§С‘СЂРЅС‹Р№");
+        m.AddItem("color_white",    "Р¦РІРµС‚: Р‘РµР»С‹Р№");
+        m.AddItem("color_orange",   "Р¦РІРµС‚: РћСЂР°РЅР¶РµРІС‹Р№");
+        m.AddItem("color_red",      "Р¦РІРµС‚: РљСЂР°СЃРЅС‹Р№");
+        m.AddItem("color_blue",     "Р¦РІРµС‚: РЎРёРЅРёР№");
+        m.AddItem("color_brown",    "Р¦РІРµС‚: РљРѕСЂРёС‡РЅРµРІС‹Р№");
+        m.AddItem("color_purple",   "Р¦РІРµС‚: РџСѓСЂРїСѓСЂРЅС‹Р№");
+        m.AddItem("color_moss",     "Р¦РІРµС‚: РњС…РѕРІС‹Р№ (С‚С‘РјРЅРѕ-Р·РµР»С‘РЅС‹Р№)");
     }
 
     m.Display(client, MENU_TIME_FOREVER);
@@ -445,22 +445,22 @@ public int MenuHandler_SBC(Menu m, MenuAction action, int client, int item)
         if (StrEqual(info, "toggle_plugin"))
         {
             g_hEnabled.SetBool(!g_hEnabled.BoolValue);
-            NotifyAll("Плагин", g_hEnabled.BoolValue);
+            NotifyAll("РџР»Р°РіРёРЅ", g_hEnabled.BoolValue);
         }
         else if (StrEqual(info, "toggle_damage"))
         {
             g_hDamageEnabled.SetBool(!g_hDamageEnabled.BoolValue);
-            NotifyAll("Урон дымом", g_hDamageEnabled.BoolValue);
+            NotifyAll("РЈСЂРѕРЅ РґС‹РјРѕРј", g_hDamageEnabled.BoolValue);
         }
         else if (StrEqual(info, "toggle_teammate"))
         {
             g_hAllowTeamDamage.SetBool(!g_hAllowTeamDamage.BoolValue);
-            NotifyAll("Урон по своим", g_hAllowTeamDamage.BoolValue);
+            NotifyAll("РЈСЂРѕРЅ РїРѕ СЃРІРѕРёРј", g_hAllowTeamDamage.BoolValue);
         }
         else if (StrEqual(info, "toggle_colormode"))
         {
             g_hColorMode.SetInt(g_hColorMode.IntValue == 0 ? 1 : 0);
-            NotifyAll("Режим цвета", g_hColorMode.IntValue == 1);
+            NotifyAll("Р РµР¶РёРј С†РІРµС‚Р°", g_hColorMode.IntValue == 1);
         }
         else if (StrContains(info, "color_") == 0)
         {
@@ -473,9 +473,9 @@ public int MenuHandler_SBC(Menu m, MenuAction action, int client, int item)
             else if (StrEqual(info, "color_purple")) g_hOverrideColor.SetString("128 0 128");
             else if (StrEqual(info, "color_moss"))   g_hOverrideColor.SetString("25 50 25");
 
-            CPrintToChatAll("{green}[SBC]{default} Override-цвет дыма изменён.");
+            CPrintToChatAll("{green}[SBC]{default} Override-С†РІРµС‚ РґС‹РјР° РёР·РјРµРЅС‘РЅ.");
             SendHudMessage(client, HUD_CHANNEL, -1.0, 0.20, HUD_COLOR1, HUD_COLOR2, 0, 0.5, 0.5, 2.5, 0.0,
-                "SBC: Цвет изменён");
+                "SBC: Р¦РІРµС‚ РёР·РјРµРЅС‘РЅ");
         }
 
         ShowSBCMenu(client);
@@ -493,16 +493,16 @@ public int MenuHandler_SBC(Menu m, MenuAction action, int client, int item)
 static void NotifyAll(const char[] what, bool state)
 {
     char msg[128];
-    Format(msg, sizeof(msg), "{green}[SBC]{default} %s: %s", what, state ? "{lime}Включено" : "{red}Выключено");
+    Format(msg, sizeof(msg), "{green}[SBC]{default} %s: %s", what, state ? "{lime}Р’РєР»СЋС‡РµРЅРѕ" : "{red}Р’С‹РєР»СЋС‡РµРЅРѕ");
     CPrintToChatAll(msg);
 
-    // HUD всем живым игрокам
+    // HUD РІСЃРµРј Р¶РёРІС‹Рј РёРіСЂРѕРєР°Рј
     for (int i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i))
         {
             SendHudMessage(i, HUD_CHANNEL, -1.0, 0.20, HUD_COLOR1, HUD_COLOR2, 0, 0.4, 0.4, 2.0, 0.0,
-                "SBC: %s %s", what, state ? "ВКЛ" : "ВЫКЛ");
+                "SBC: %s %s", what, state ? "Р’РљР›" : "Р’Р«РљР›");
         }
     }
 }

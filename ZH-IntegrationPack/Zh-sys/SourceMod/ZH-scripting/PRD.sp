@@ -527,13 +527,13 @@ public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadca
             return Plugin_Continue;
         }
 
-        // --- �������� "������������ ���������" ---
+        // --- проверка "справедливое возмездие" ---
         if (g_iTeamKills[victim] >= g_hTeamkillForgiveThreshold.IntValue)
         {
             CPrintToChatAll("%t", "Teamkill_Justice", attacker, victim);
             return Plugin_Continue;
         }
-        // --- �������� "�������� ��������" ---
+        // --- проверка "взаимный урон" ---
         int mutual = g_iMutualDamage[victim][attacker];
         if (mutual >= g_hTeamDamageMutualThreshold.IntValue)
         {

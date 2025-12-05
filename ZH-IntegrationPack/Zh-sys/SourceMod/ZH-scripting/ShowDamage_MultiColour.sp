@@ -17,8 +17,8 @@ public void OnPluginStart()
     
     RegConsoleCmd("sm_sd", ShowDamageMenu);
     RegConsoleCmd("sm_showdamage", ShowDamageMenu);
-    RegConsoleCmd("sm_С<Р?", ShowDamageMenu);
-    RegConsoleCmd("sm_С<С?С%С┼Р?С"С?С"РїС?", ShowDamageMenu);
+    RegConsoleCmd("sm_урон", ShowDamageMenu);
+    RegConsoleCmd("sm_показатьурон", ShowDamageMenu);
     
     for (int i; ++i <= MaxClients;)
     {

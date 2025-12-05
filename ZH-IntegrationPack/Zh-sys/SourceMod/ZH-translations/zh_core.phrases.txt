@@ -1,0 +1,11 @@
+"Phrases"
+{
+    "ZHCore_Diag_Header"
+    {
+        "en"    "ZH-sys diagnostics"
+    }
+    "ZHCore_NoModules"
+    {
+        "en"    "No ZH modules have registered yet."
+    }
+}
