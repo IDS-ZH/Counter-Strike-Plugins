@@ -759,7 +759,15 @@ CVAR (образец):
 - Game modes: DM/TDM/GG toggles, Mix_mod, fan events; revive/rescue modules; integrate with PRD rewards and MST classes.
 - Extensions (MetaMod/SM): sm-ext-websocket (HTTP+WS), system2, FlashBang Tools, CSSDM/C++ if needed for deep hooks (bot goals, physics weapons). Keep builds under Zh-sys/MetaMod.
 - Assets/FastDL: centralized downloads builder from MST/classes/weapons/zones; generate .res for map extras; use FastDL, not web panel.
-- Docs: per-module changelog; keep configs under configs/ZH-sys/{module}; translations in ZH-translations; build scripts under Zh-sys/SourceMod.
+- Docs: per-module changelog; keep configs under `addons/sourcemod/configs/ZH-sys/{module}`; translations under `addons/sourcemod/translations`; build scripts under `addons/sourcemod/scripting` (ZH modules live as `zh_*.sp` + includes).
+
+### 27.1. ZH_abilities (revive/second life/classes)
+- Дерево: `addons/sourcemod/scripting/ZH_abilities/`. Базовые модули: `zh_revive.sp` (revive/self-revive), `zh_2nd_live.sp` (вторая жизнь).
+- Интеграция: использовать флаг `zh_mode_revive` (zh_modes) и способности MST (например, `MST_ABILITY_REVIVE`) для включения/выдачи классов; хранилище настроек — `addons/sourcemod/configs/ZH-sys/Abilities/{module}.cfg`.
+- Идеи способностей: киборги/терминаторы/дроиды (повышенная живучесть/иммунитеты), шуточный класс курицы, турели/барьеры, скрытые мины/ловушки (лазерные мины из зомби-модов как подрывник/сапёр), второй шанс (авто-рес на месте со сниженным HP/оружием), тим-ревив через предмет/медпак.
+- Дополнительно: invisibility (скрытый класс/предмет), парашют как ability (смягчение урона от падения), броня по hitgroup (полный “бронежилет” для киборгов/тяжёлых, отдельные коэффициенты для рук/ног).
+- Spy/Drone ability: гибрид nadeSpy + мини-дрон (модель `hl2/models/gunship.mdl` или `hl2/models/combine_helicopter.mdl`, масштабируемая). Метательный маяк/камера + опциональный автономный “патруль” с маркировкой врагов. Конфиг `addons/sourcemod/configs/ZH-sys/Abilities/spy_drone.cfg` (время жизни, масштаб, скорость, дальность обзора).
+- Источники для реюза: `In Development/SourceMod/Legacy` (KillStats для hitgroup, revival/sm_revival, lasermines/tripmines, nadeSpy, VIP-модули, зомби abilities). Ориентироваться на совместимость с zh_core/MST/RHA (единицы измерения, CVAR).
 
 ## 28. Обновленная архитектура ZH-sys: Детали реализации модулей
 
@@ -1092,6 +1100,10 @@ CVAR (образец):
 - Комплекты cfg/phrases: наборы в `addons/sourcemod/configs`, `translations`, отдельно лежащие `adminlist_settings.ini`, `admtarget.ini`.
 
 ### Замечания по конфликтам и выбору
+- Стек карт/голосований: `basevotes` + `mapchooser` + `nominations` + `randomcycle` + `rockthevote` + `nextmap` должны работать согласованно. Не грузить дубликаты (например, MapChooser Extended + стандартный mapchooser). Если используете zh_modes/zh_core, оставляйте один стек голосований и прописывайте пути к mapcycle в nextmap (см. раздел по nextmap).
+- Провайдер админки: `admin-flatfile` vs `admin-sql-*`/`sql-admin-manager` — выбирать один; смешение даст рассинхрон прав. Для ZH-sys предпочтительно централизовать через MaterialAdmin/DB и отключить лишние admin-sql смx.
+- Резерв/слоты/антифлуд: `reservedslots`, `antiflood`, `basechat` модификации могут конфликтовать с чат-цветами/ccprocessor; при включении ZH-core чатов использовать один форматтер и одну антифлуд логику.
+- FunVotes/BaseVotes: они совместимы, но избыток голосований (basevotes+funvotes+mapchooser stack) может спамить; ограничить права через ADMFLAG_VOTE и zh_core policy.
 - `MapChooser Extended` vs `Map Vote Online`: брать один стек голосований; Extended богаче и дружит с RTV/nominate.
 - `adminlist` дублирует функции объявления админов с menu/chat вариантами — оставить одну цепочку конфигов.
 - `Cvar Protect`/`block_cmd`/`block_name_change` могут пересекаться с античит-системами — следить за порядком загрузки.
@@ -1825,11 +1837,5 @@ CVAR (образец):
 5.  **`Suspicious_Directories_Analysis.md`**: Этот документ анализирует содержимое "подозрительных" каталогов (`CollisionHook-1.3.0` и `to_merge`) и предоставляет рекомендации по работе с ними.
 
 Таким образом, документация к проекту интеграции "расщеплена" и представлена в нескольких `.md` файлах, каждый из которых охватывает свой специфический аспект проекта. Все эти файлы важны для полного понимания целей, ресурсов и рекомендаций по разработке `ZH-sys`.
-
-
-
-
-
-
 
 

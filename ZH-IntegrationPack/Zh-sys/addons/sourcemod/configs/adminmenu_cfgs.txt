@@ -1,0 +1,13 @@
+/**
+ * List config files here (relative to moddir) to have them added to the exec config menu list
+ * Left side is the filename, right side is the text to be added to the menu
+ */
+Configs
+{
+	"cfg/server.cfg"			"Standard Server Setup"
+	"cfg/sourcemod/sm_mode_public.cfg"	"Switch: Public"
+	"cfg/sourcemod/sm_mode_dm.cfg"		"Switch: DeathMatch"
+	"cfg/sourcemod/sm_mode_tdm.cfg"		"Switch: Team DeathMatch"
+	"cfg/sourcemod/sm_mode_gg.cfg"		"Switch: GunGame"
+	"cfg/sourcemod/sm_mode_tgg.cfg"		"Switch: Team GunGame"
+}
