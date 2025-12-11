@@ -1,24 +1,43 @@
 # Counter-Strike-Plugins
 
-This repository contains a collection of SourceMod plugins for Counter-Strike: Source.
+Сборка плагинов/модов для CS:S с двумя основными сценариями:
+- **ZH-IntegrationPack**: интеграционный набор с ZH-sys (ядро/классы/режимы), веб-панелью (MaterialAdmin в xampp) и свежими сборками MetaMod+SourceMod.
+- **Standalone**: отдельные плагины/моды без плотной интеграции (оставлены как есть).
 
-## PlayerRewardAndDiscipline
+Все разрозненные .md сведены в `ZH-IntegrationPack/All_Docs.md`. Исходные .md убраны (есть копии у владельца).
 
-This plugin provides a comprehensive system for rewarding players for positive actions and disciplining them for negative ones.
+## Структура (уровни до 7)
+- `ZH-IntegrationPack/`
+  - `All_Docs.md` — объединённая документация (архитектура, классификатор Legacy, планы).
+  - `New Metamod+Sourcemod/` — свежие бинарники MM/SM (git 1374/7280) + configs (добавлена секция DB `materialadmin`).
+  - `Zh-sys/`
+    - `SourceMod/` — исходники ZH-системы: `zh_core`, `zh_mst`, `zh_modes`, `zh_bots`, `zh_c4`, `zh_hostages`, `zh_zones`, `zh_webbridge`, и пр.; `include/` с общими .inc; `ZH-translations/`.
+    - `MetaMod/sm-ext-websocket/` — исходники C++ расширения WebSocket/HTTP (AMB/VS сборка).
+  - `xampp/htdocs/` — веб-панель MaterialAdmin (`materialadmin/`) + MOTD (`motd-CS_Source.html`); пример DB `data/database.php` (materialadmin/ma_user/ma_pass).
+  - `СПИСКИ/` — вспомогательные списки/ТЗ.
+- `Standalone/` — отдельные плагины (не интегрированы).
+- `Sourcemod-1.13-CUSTOMized/` — предыдущая кастомная сборка SM с include/ext (использовать точечно при необходимости).
 
-### Features
+## ZH-sys в двух словах
+- `zh_core`: общие нативы/логирование/путь к конфигам.
+- `zh_mst`: классы/модели/способности, загрузчик ресурсов, хуки для режимов.
+- `zh_modes`: переключатели DM/TDM/GG/Chicken/Revive (админ, голосования и web-хуки — в планах).
+- `zh_bots`: базовые утилиты (override bot_difficulty, классы MST, фонарик/маяк — черновик).
+- `zh_c4`, `zh_hostages`, `zh_zones`: черновики управления бомбой/заложниками/зонами.
+- `zh_webbridge`: REST (system2) + опционально WebSocket (sm-ext-websocket) для связи с панелью.
 
-*   **MVP Rewards:** At the end of each round, players can vote for the Most Valuable Player (MVP). The MVP is determined by a custom logic that prioritizes objective-based wins. The MVP receives a monetary reward based on the number of votes they receive.
-*   **Teamkill Punishments:** Players who teamkill are punished. The punishment can be configured to be automatic or based on a vote from the victim.
-*   **Anti-Camper System:** Players who remain in the same area for too long are marked as campers and highlighted with a beacon.
-*   **In-Game Rules:** Display server rules to players at the beginning of each round.
-*   **Admin Menu:** A simple in-game menu for administrators to enable or disable the plugin's features.
+## Веб-панель
+- Файлы: `xampp/htdocs/materialadmin/` (копия Legacy/Web).
+- Настройки БД: `ZH-IntegrationPack/New Metamod+Sourcemod/addons/sourcemod/configs/databases.cfg` (секция `materialadmin`) и `xampp/htdocs/materialadmin/data/database.php` (dsn/user/pass/prefix).
+- Расширения для realtime: sm-ext-websocket (исходники в Zh-sys/MetaMod), можно собрать через Visual Studio/AMB.
 
-### MVP Calculation
+## Дополнительные ресурсы
 
-The MVP is determined based on the following hierarchy:
+-   **CSS-GH:** Каталог `CSS-GH` содержит полезную сборку исходного хоть и старого кода CSS из GitHub (народные порты), что предоставляет ценные ресурсы для понимания и разработки плагинов.
 
-1.  **Bomb Defusal:** The player who defuses the bomb is the MVP.
-2.  **Last Hostage Rescue:** The player who rescues the last hostage is the MVP.
-3.  **Bomb Explosion:** If the bomb explodes, the player who planted it is the MVP.
-4.  **Most Kills:** If no objective-based MVP condition is met, the player with the most kills is the MVP. In case of a tie, the player who achieved the kill count first is the MVP.
+## Собрать/запуск (черновики)
+- Компиляция .sp пока не запускалась. Используйте spcomp из `New Metamod+Sourcemod`.
+- Для веба: задать реальные креды MySQL, развернуть XAMPP, проверить материалadmin.
+- Для C++ ext: собрать sm-ext-websocket, подключить к `New Metamod+Sourcemod`.
+
+Дополнительно см. `ZH-IntegrationPack/РефакторMD.txt` (памятка по объединённым .md). Перемещайтесь с осторожностью: многие исходники Legacy требуют портирования под SM 1.13. Ҭ
