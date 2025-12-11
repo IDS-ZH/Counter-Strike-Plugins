@@ -3,9 +3,10 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <cstrike>
 #include <zh_core>
 
-#define PLUGIN_VERSION "0.2.0-dev"
+#define PLUGIN_VERSION "0.2.1-dev"
 #define MST_LIBRARY "zh_mst"
 
 // Ability flags mirror zh_mst.inc
@@ -24,11 +25,34 @@ enum MSTAbilityFlags
     MSTAbility_EngineerToolset   = 1 << 9
 };
 
+// Skin type enumeration
+enum SkinType
+{
+    SkinType_Regular = 0,     // Обычный/стандартный скин
+    SkinType_Female,          // Женский скин
+    SkinType_Robot,           // Робот/киборг скин
+    SkinType_LongSleeve,      // Скин с длинным рукавом
+    SkinType_Animal,          // Животное
+    SkinType_Monster          // Чудовище
+};
+
+// Типы видов от третьего лица
+enum ThirdPersonMode
+{
+    ThirdPersonMode_FirstPerson = 0,      // 0: Обычный вид от первого лица
+    ThirdPersonMode_ThirdPerson,          // 1: Вид от третьего лица (обычный)
+    ThirdPersonMode_ThirdPersonStatic     // 2: Вид от третьего лица (статичный, как thirdperson_mayamode)
+}
+
+// ClassFields with additional glove information
 enum ClassFields
 {
     ClassId,
     ClassAbilityFlags,
-    ClassTeamMask
+    ClassTeamMask,
+    ClassSkinType,            // Тип скина
+    ClassGloveModel[PLATFORM_MAX_PATH],  // Модель перчаток
+    ClassGloveSkin            // Скин перчаток
 };
 
 #define TEAMMASK_T      (1 << 0)
@@ -44,6 +68,11 @@ ConVar g_CvarMstModeGG;
 ConVar g_CvarMstModeChicken;
 ConVar g_CvarMstModeRevive;
 
+// Переменные для системы thirdperson
+ConVar g_CvarTpEnabled;
+ConVar g_CvarTpFreezeTime;
+ConVar g_CvarTpFreezeTimeEnd;
+
 char g_MainConfig[PLATFORM_MAX_PATH];
 bool g_ConfigsLoaded;
 bool g_AutoAssign;
@@ -52,20 +81,33 @@ int g_DefaultClassCT = -1;
 int g_DefaultClassSpec = -1;
 
 int g_ClientClass[MAXPLAYERS + 1];
-ArrayList g_ClassDefs;
+ArrayList g_ClassDefs;           // ClassDefs теперь содержит больше данных
 StringMap g_ClassNames;
 StringMap g_ClassModels;
 StringMap g_ClassSounds;
+StringMap g_ClassGloveModels;    // Новое: карта моделей перчаток
+StringMap g_ClassGloveSkins;     // Новое: карта скинов перчаток
+StringMap g_ClassSkinTypes;      // Новое: карта типов скинов
 ArrayList g_DownloadModels;
 ArrayList g_DownloadSounds;
+
+// Трекинг viewmodel-ов для обновления перчаток
+int g_ClientViewModels[MAXPLAYERS + 1][2];  // Хранит оба viewmodel-а игрока
+
+// Трекинг состояния thirdperson для каждого игрока
+int g_ClientTpMode[MAXPLAYERS + 1];
+float g_ClientTpAngleOffset[MAXPLAYERS + 1][3];  // Угловое смещение для static thirdperson
+
+// Таймер для автоматического отключения thirdperson после freeze time
+Handle g_FreezeEndTimer[MAXPLAYERS + 1];
 
 Handle g_fwdClassChanged;
 
 public Plugin myinfo =
 {
-    name = "ZH-sys MST (ModelSwitchTool)",
+    name = "ZH-sys MST (ModelSwitchTool) - Enhanced with Gloves Support and ThirdPerson",
     author = "ZloyHohol integration workbench",
-    description = "Model/class switch manager skeleton for ZH-sys.",
+    description = "Model/class switch manager skeleton for ZH-sys with gloves support and third-person view modes.",
     version = PLUGIN_VERSION,
     url = ""
 };
@@ -88,6 +130,15 @@ public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int errMax)
     CreateNative("MST_GetClassSoundProfile", Native_GetClassSoundProfile);
     CreateNative("MST_RegisterModel", Native_RegisterModel);
     CreateNative("MST_RegisterSound", Native_RegisterSound);
+    // Добавляем новые нативы для работы с типами скинов и перчатками
+    CreateNative("MST_SetClassGloveInfo", Native_SetClassGloveInfo);
+    CreateNative("MST_GetClassGloveInfo", Native_GetClassGloveInfo);
+    CreateNative("MST_GetClassSkinType", Native_GetClassSkinType);
+    CreateNative("MST_SetClassSkinType", Native_SetClassSkinType);
+    // Нативы для thirdperson режима
+    CreateNative("MST_TP_SetClientThirdPersonMode", Native_SetClientTpMode);
+    CreateNative("MST_TP_GetClientThirdPersonMode", Native_GetClientTpMode);
+    CreateNative("MST_TP_ToggleClientThirdPersonMode", Native_ToggleClientTpMode);
     return APLRes_Success;
 }
 
@@ -104,6 +155,11 @@ public void OnPluginStart()
     g_CvarMstModeChicken = CreateConVar("zh_mode_chicken", "0", "Enable Chicken Fight mode.");
     g_CvarMstModeRevive = CreateConVar("zh_mode_revive", "0", "Enable revive module (should be off for DM).");
 
+    // Переменные для thirdperson
+    g_CvarTpEnabled = CreateConVar("zh_mst_tp_enabled", "1", "Enable third-person modes for MST.", _, true, 0.0, true, 1.0);
+    g_CvarTpFreezeTime = CreateConVar("zh_mst_tp_freezetime", "1", "Enable automatic thirdperson during freeze time.", _, true, 0.0, true, 1.0);
+    g_CvarTpFreezeTimeEnd = CreateConVar("zh_mst_tp_freezetime_end", "1", "Auto disable thirdperson after freeze time ends.", _, true, 0.0, true, 1.0);
+
     AutoExecConfig(true, "zh_mst", "sourcemod");
 
     ResolveConfigPaths();
@@ -111,16 +167,28 @@ public void OnPluginStart()
     RegAdminCmd("sm_mst_reload", Command_ReloadMst, ADMFLAG_CONFIG, "Reloads MST configs.");
     RegAdminCmd("sm_mst_mode", Command_SetMode, ADMFLAG_GENERIC, "Set mode flags (dm/tdm/gg/chicken/revive).");
 
-    g_ClassDefs = new ArrayList(3); // ClassId + AbilityFlags + TeamMask
+    // Команды для игроков thirdperson
+    RegConsoleCmd("sm_tp", Command_ThirdPerson, "Toggle third-person view");
+    RegConsoleCmd("sm_tp_mode", Command_ThirdPersonMode, "Set specific third-person mode");
+
+    g_ClassDefs = new ArrayList(5 + PLATFORM_MAX_PATH + 1); // ClassId + AbilityFlags + TeamMask + SkinType + [Model] + GloveSkin
     g_ClassNames = new StringMap();
     g_ClassModels = new StringMap();
     g_ClassSounds = new StringMap();
+    g_ClassGloveModels = new StringMap();
+    g_ClassGloveSkins = new StringMap();
+    g_ClassSkinTypes = new StringMap();
     g_DownloadModels = new ArrayList(PLATFORM_MAX_PATH);
     g_DownloadSounds = new ArrayList(PLATFORM_MAX_PATH);
 
     g_fwdClassChanged = CreateGlobalForward("MST_OnClassChanged", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_String);
 
     ResetClientClasses();
+
+    // Хуки для thirdperson
+    HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+    HookEvent("round_end", Event_RoundEnd, EventHookMode_PostNoCopy);
+    HookEvent("round_freeze_end", Event_FreezeEnd, EventHookMode_PostNoCopy);
 
     ZH_RegisterModule("mst");
 }
@@ -133,16 +201,40 @@ public void OnConfigsExecuted()
 public void OnMapStart()
 {
     PrecacheRegisteredResources();
+
+    // Хуки для отслеживания viewmodel-ов
+    HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_PostNoCopy);
+    // Подписываемся на создание viewmodel-ов
+    HookEntityOutput("", "OnSpawn", OnEntitySpawned);
 }
 
 public void OnClientDisconnect(int client)
 {
     g_ClientClass[client] = -1;
+    g_ClientViewModels[client][0] = -1;
+    g_ClientViewModels[client][1] = -1;
+
+    g_ClientTpMode[client] = ThirdPersonMode_FirstPerson;
+    if (g_FreezeEndTimer[client] != null)
+    {
+        KillTimer(g_FreezeEndTimer[client]);
+        g_FreezeEndTimer[client] = null;
+    }
 }
 
 public void OnClientPutInServer(int client)
 {
     g_ClientClass[client] = -1;
+    g_ClientViewModels[client][0] = -1;
+    g_ClientViewModels[client][1] = -1;
+
+    // SDK Hooks для обновления перчаток при смене оружия
+    SDKHook(client, SDKHook_WeaponEquipPost, OnWeaponEquipPost);
+    SDKHook(client, SDKHook_WeaponSwitchPost, OnWeaponSwitchPost);
+
+    // Инициализация thirdperson состояния
+    g_ClientTpMode[client] = ThirdPersonMode_FirstPerson;
+    g_FreezeEndTimer[client] = null;
 
     // Delay to allow team assignment to settle for bots/players.
     CreateTimer(0.2, Timer_AssignDefaultClass, GetClientUserId(client));
@@ -166,6 +258,100 @@ public any Native_DefineClass(Handle plugin, int numParams)
     return true;
 }
 
+// Новый натив для установки информации о перчатках
+public any Native_SetClassGloveInfo(Handle plugin, int numParams)
+{
+    int classId = GetNativeCell(1);
+    char gloveModel[PLATFORM_MAX_PATH];
+    int gloveSkin = GetNativeCell(3);
+
+    GetNativeString(2, gloveModel, sizeof(gloveModel));
+
+    char classIdStr[16];
+    Format(classIdStr, sizeof(classIdStr), "%d", classId);
+
+    g_ClassGloveModels.SetString(classIdStr, gloveModel);
+    g_ClassGloveSkins.SetValue(classIdStr, gloveSkin);
+
+    if (g_CvarMstDebug != null && g_CvarMstDebug.BoolValue)
+    {
+        ZH_LogInfo("Set glove info for class %d: model=%s, skin=%d", classId, gloveModel, gloveSkin);
+    }
+
+    // Добавляем модель перчаток для прекеширования
+    if (gloveModel[0] != '\0')
+    {
+        PushUniqueString(g_DownloadModels, gloveModel);
+    }
+
+    return true;
+}
+
+// Новый натив для получения информации о перчатках
+public any Native_GetClassGloveInfo(Handle plugin, int numParams)
+{
+    int classId = GetNativeCell(1);
+    int maxlen = GetNativeCell(3);
+    char[] buffer = new char[maxlen];
+    int gloveSkin;
+
+    char classIdStr[16];
+    Format(classIdStr, sizeof(classIdStr), "%d", classId);
+
+    bool hasModel = g_ClassGloveModels.GetString(classIdStr, buffer, maxlen);
+    bool hasSkin = g_ClassGloveSkins.GetValue(classIdStr, gloveSkin);
+
+    if (!hasModel || !hasSkin)
+    {
+        buffer[0] = '\0';
+        gloveSkin = 0;
+    }
+
+    SetNativeString(2, buffer, maxlen);
+    SetNativeCellRef(4, gloveSkin);
+
+    return hasModel && hasSkin;
+}
+
+// Новый натив для установки типа скина
+public any Native_SetClassSkinType(Handle plugin, int numParams)
+{
+    int classId = GetNativeCell(1);
+    int skinType = GetNativeCell(2);
+
+    char classIdStr[16];
+    Format(classIdStr, sizeof(classIdStr), "%d", classId);
+
+    g_ClassSkinTypes.SetValue(classIdStr, skinType);
+
+    if (g_CvarMstDebug != null && g_CvarMstDebug.BoolValue)
+    {
+        ZH_LogInfo("Set skin type %d for class %d", skinType, classId);
+    }
+
+    return true;
+}
+
+// Новый натив для получения типа скина
+public any Native_GetClassSkinType(Handle plugin, int numParams)
+{
+    int classId = GetNativeCell(1);
+
+    char classIdStr[16];
+    Format(classIdStr, sizeof(classIdStr), "%d", classId);
+
+    int skinType;
+    bool result = g_ClassSkinTypes.GetValue(classIdStr, skinType);
+
+    if (!result)
+    {
+        skinType = SkinType_Regular;
+    }
+
+    return skinType;
+}
+
+// Остальные нативы остаются без изменений
 public any Native_SetClientClass(Handle plugin, int numParams)
 {
     int client = GetNativeCell(1);
@@ -174,7 +360,17 @@ public any Native_SetClientClass(Handle plugin, int numParams)
     char reason[64];
     GetNativeString(3, reason, sizeof(reason));
 
-    return SetClientClassInternal(client, classId, reason);
+    bool result = SetClientClassInternal(client, classId, reason);
+
+    // Обновляем перчатки после смены класса
+    if (result && 1 <= client <= MaxClients && IsClientInGame(client))
+    {
+        UpdateGlovesForClient(client);
+        // Также обновляем thirdperson режим при смене класса, если это необходимо
+        SetClientViewMode(client, g_ClientTpMode[client]);
+    }
+
+    return result;
 }
 
 public any Native_GetClientClass(Handle plugin, int numParams)
@@ -254,6 +450,78 @@ public any Native_RegisterSound(Handle plugin, int numParams)
     return 0;
 }
 
+// Нативы для thirdperson режима
+public any Native_SetClientTpMode(Handle plugin, int numParams)
+{
+    int client = GetNativeCell(1);
+    int mode = GetNativeCell(2);
+    bool sendUpdate = GetNativeCell(3);
+
+    if (client < 1 || client > MaxClients || !IsClientInGame(client))
+    {
+        return false;
+    }
+
+    if (mode < ThirdPersonMode_FirstPerson || mode > ThirdPersonMode_ThirdPersonStatic)
+    {
+        return false;
+    }
+
+    g_ClientTpMode[client] = mode;
+
+    if (sendUpdate)
+    {
+        SetClientViewMode(client, mode);
+    }
+
+    if (g_CvarTpEnabled.BoolValue && g_CvarMstDebug != null && g_CvarMstDebug.BoolValue)
+    {
+        ZH_LogInfo("Client %d set to thirdperson mode %d", client, mode);
+    }
+
+    return true;
+}
+
+public any Native_GetClientTpMode(Handle plugin, int numParams)
+{
+    int client = GetNativeCell(1);
+
+    if (client < 1 || client > MaxClients || !IsClientInGame(client))
+    {
+        return ThirdPersonMode_FirstPerson;
+    }
+
+    return g_ClientTpMode[client];
+}
+
+public any Native_ToggleClientTpMode(Handle plugin, int numParams)
+{
+    int client = GetNativeCell(1);
+    bool sendUpdate = GetNativeCell(2);
+
+    if (client < 1 || client > MaxClients || !IsClientInGame(client))
+    {
+        return false;
+    }
+
+    // Переключаем между firstperson и thirdperson (игнорируем static mode при тоггле)
+    if (g_ClientTpMode[client] == ThirdPersonMode_FirstPerson)
+    {
+        g_ClientTpMode[client] = ThirdPersonMode_ThirdPerson;
+    }
+    else
+    {
+        g_ClientTpMode[client] = ThirdPersonMode_FirstPerson;
+    }
+
+    if (sendUpdate)
+    {
+        SetClientViewMode(client, g_ClientTpMode[client]);
+    }
+
+    return true;
+}
+
 // --- Commands ----------------------------------------------------------------
 
 public Action Command_ReloadMst(int client, int args)
@@ -305,11 +573,63 @@ public Action Command_SetMode(int client, int args)
     return Plugin_Handled;
 }
 
+// Команды thirdperson
+public Action Command_ThirdPerson(int client, int args)
+{
+    if (!g_CvarTpEnabled.BoolValue || client <= 0 || client > MaxClients || !IsClientInGame(client))
+    {
+        return Plugin_Handled;
+    }
+
+    Native_ToggleClientTpMode(null, 2, client, true);
+
+    char modeName[32];
+    GetThirdPersonModeName(g_ClientTpMode[client], modeName, sizeof(modeName));
+    ReplyToCommand(client, "[ZH-MST-TP] Third-person mode changed to: %s", modeName);
+
+    return Plugin_Handled;
+}
+
+public Action Command_ThirdPersonMode(int client, int args)
+{
+    if (!g_CvarTpEnabled.BoolValue || client <= 0 || client > MaxClients || !IsClientInGame(client))
+    {
+        return Plugin_Handled;
+    }
+
+    if (args == 0)
+    {
+        ReplyToCommand(client, "[ZH-MST-TP] Usage: sm_tp_mode <0|1|2> (0=firstperson, 1=thirdperson, 2=static thirdperson)");
+        ReplyToCommand(client, "[ZH-MST-TP] Current mode: %d (%s)", g_ClientTpMode[client],
+                      GetThirdPersonModeName(g_ClientTpMode[client], modeName, sizeof(modeName)));
+        return Plugin_Handled;
+    }
+
+    char arg[16];
+    GetCmdArg(1, arg, sizeof(arg));
+    int mode = StringToInt(arg);
+
+    if (mode < ThirdPersonMode_FirstPerson || mode > ThirdPersonMode_ThirdPersonStatic)
+    {
+        ReplyToCommand(client, "[ZH-MST-TP] Invalid mode. Valid modes: 0=firstperson, 1=thirdperson, 2=static thirdperson");
+        return Plugin_Handled;
+    }
+
+    Native_SetClientTpMode(null, 3, client, mode, true);
+
+    char modeName[32];
+    GetThirdPersonModeName(g_ClientTpMode[client], modeName, sizeof(modeName));
+    ReplyToCommand(client, "[ZH-MST-TP] Third-person mode set to: %d (%s)", mode, modeName);
+
+    return Plugin_Handled;
+}
+
 // --- Internals ---------------------------------------------------------------
 
 void ResolveConfigPaths()
 {
-    ZH_BuildConfigPath(ZHConfig_MST, "MST-main-config.cfg", g_MainConfig, sizeof(g_MainConfig));
+    // Путь к основному конфигурационному файлу MST в директории Modifiers/Model_Switch_Tool
+    BuildPath(Path_SM, g_MainConfig, sizeof(g_MainConfig), "configs/ZH-sys/Modifiers/Model_Switch_Tool/MST-main-config.cfg");
 }
 
 void LoadMstConfigs()
@@ -405,7 +725,29 @@ void LoadClasses(KeyValues kv)
             teamMask = ParseTeamMask(teamText, TEAMMASK_ANY);
         }
 
-        DefineOrUpdateClass(classId, name, model, sound, flags, teamMask);
+        // Загружаем тип скина
+        char skinTypeStr[32];
+        kvClasses.GetString("skin_type", skinTypeStr, sizeof(skinTypeStr));
+        int skinType = ParseSkinType(skinTypeStr);
+
+        DefineOrUpdateClass(classId, name, model, sound, flags, teamMask, skinType);
+
+        // Загружаем информацию о перчатках
+        char gloveModel[PLATFORM_MAX_PATH];
+        int gloveSkin = kvClasses.GetNum("glove_skin", 0);
+        kvClasses.GetString("glove_model", gloveModel, sizeof(gloveModel));
+
+        if (gloveModel[0] != '\0')
+        {
+            char classIdStr[16];
+            Format(classIdStr, sizeof(classIdStr), "%d", classId);
+
+            g_ClassGloveModels.SetString(classIdStr, gloveModel);
+            g_ClassGloveSkins.SetValue(classIdStr, gloveSkin);
+
+            // Добавляем модель перчаток для прекеширования
+            PushUniqueString(g_DownloadModels, gloveModel);
+        }
     }
     while (kvClasses.GotoNextKey(false));
 
@@ -453,10 +795,26 @@ void LoadDownloads(KeyValues kv)
     }
 }
 
-void DefineOrUpdateClass(int classId, const char[] name, const char[] model, const char[] sound, int flags, int teamMask = TEAMMASK_ANY)
+// Обновленная функция DefineOrUpdateClass с поддержкой типа скина
+void DefineOrUpdateClass(int classId, const char[] name, const char[] model, const char[] sound, int flags, int teamMask = TEAMMASK_ANY, int skinType = SkinType_Regular)
 {
-    SetNumericValueForClass(classId, flags);
-    SetTeamValueForClass(classId, teamMask);
+    // Найти или создать запись в ArrayList
+    int idx = FindClassIndex(classId);
+    if (idx == -1)
+    {
+        idx = g_ClassDefs.Push(0);
+        g_ClassDefs.Set(idx, classId, ClassId);
+        g_ClassDefs.Set(idx, 0, ClassAbilityFlags);  // default flags
+        g_ClassDefs.Set(idx, TEAMMASK_ANY, ClassTeamMask);  // default team mask
+        g_ClassDefs.Set(idx, SkinType_Regular, ClassSkinType);  // default skin type
+        g_ClassDefs.SetString(idx, "", ClassGloveModel);  // default glove model
+        g_ClassDefs.Set(idx, 0, ClassGloveSkin);  // default glove skin
+    }
+
+    g_ClassDefs.Set(idx, flags, ClassAbilityFlags);
+    g_ClassDefs.Set(idx, teamMask, ClassTeamMask);
+    g_ClassDefs.Set(idx, skinType, ClassSkinType);
+
     SetStringValueForClass(g_ClassNames, classId, name);
     SetStringValueForClass(g_ClassModels, classId, model);
     SetStringValueForClass(g_ClassSounds, classId, sound);
@@ -472,7 +830,7 @@ void DefineOrUpdateClass(int classId, const char[] name, const char[] model, con
 
     if (g_CvarMstDebug != null && g_CvarMstDebug.BoolValue)
     {
-        ZH_LogInfo("Defined class %d (%s) flags=%d model=%s sound=%s", classId, name, flags, model, sound);
+        ZH_LogInfo("Defined class %d (%s) flags=%d model=%s sound=%s skinType=%d", classId, name, flags, model, sound, skinType);
     }
 }
 
@@ -509,6 +867,15 @@ void ResetClientClasses()
     for (int i = 1; i <= MaxClients; i++)
     {
         g_ClientClass[i] = -1;
+        g_ClientViewModels[i][0] = -1;
+        g_ClientViewModels[i][1] = -1;
+        
+        g_ClientTpMode[i] = ThirdPersonMode_FirstPerson;
+        if (g_FreezeEndTimer[i] != null)
+        {
+            KillTimer(g_FreezeEndTimer[i]);
+            g_FreezeEndTimer[i] = null;
+        }
     }
 }
 
@@ -534,6 +901,46 @@ int GetTeamMaskForClass(int classId)
     return g_ClassDefs.Get(idx, ClassTeamMask);
 }
 
+int GetSkinTypeForClass(int classId)
+{
+    int idx = FindClassIndex(classId);
+    if (idx == -1)
+    {
+        return SkinType_Regular;
+    }
+
+    return g_ClassDefs.Get(idx, ClassSkinType);
+}
+
+void SetGloveInfoForClass(int classId, const char[] gloveModel, int gloveSkin)
+{
+    int idx = FindClassIndex(classId);
+    if (idx == -1)
+    {
+        // Если класс еще не определен, определяем с дефолтными значениями
+        DefineOrUpdateClass(classId, "Undefined", "", "", 0, TEAMMASK_ANY, SkinType_Regular);
+        idx = FindClassIndex(classId);
+        if (idx == -1) return; // Ошибка
+    }
+
+    g_ClassDefs.SetString(idx, gloveModel, ClassGloveModel);
+    g_ClassDefs.Set(idx, gloveSkin, ClassGloveSkin);
+}
+
+void GetGloveInfoForClass(int classId, char[] gloveModel, int maxlen, int& gloveSkin)
+{
+    int idx = FindClassIndex(classId);
+    if (idx == -1)
+    {
+        gloveModel[0] = '\0';
+        gloveSkin = 0;
+        return;
+    }
+
+    g_ClassDefs.GetString(idx, gloveModel, maxlen, ClassGloveModel);
+    gloveSkin = g_ClassDefs.Get(idx, ClassGloveSkin);
+}
+
 int FindClassIndex(int classId)
 {
     for (int i = 0; i < g_ClassDefs.Length; i++)
@@ -554,6 +961,9 @@ void SetNumericValueForClass(int classId, int flags)
         idx = g_ClassDefs.Push(0);
         g_ClassDefs.Set(idx, classId, ClassId);
         g_ClassDefs.Set(idx, TEAMMASK_ANY, ClassTeamMask);
+        g_ClassDefs.Set(idx, SkinType_Regular, ClassSkinType);
+        g_ClassDefs.SetString(idx, "", ClassGloveModel);
+        g_ClassDefs.Set(idx, 0, ClassGloveSkin);
     }
     g_ClassDefs.Set(idx, flags, ClassAbilityFlags);
 }
@@ -565,6 +975,9 @@ void SetTeamValueForClass(int classId, int teamMask)
     {
         idx = g_ClassDefs.Push(0);
         g_ClassDefs.Set(idx, classId, ClassId);
+        g_ClassDefs.Set(idx, SkinType_Regular, ClassSkinType);
+        g_ClassDefs.SetString(idx, "", ClassGloveModel);
+        g_ClassDefs.Set(idx, 0, ClassGloveSkin);
     }
     g_ClassDefs.Set(idx, teamMask, ClassTeamMask);
 }
@@ -645,160 +1058,133 @@ Action Timer_AssignDefaultClass(Handle timer, any userid)
     }
 
     SetClientClassInternal(client, desired, "auto-assign");
+    UpdateGlovesForClient(client);
+    SetClientViewMode(client, g_ClientTpMode[client]); // Устанавливаем вид от третьего лица при автоприсвоении класса
     return Plugin_Stop;
 }
 
 int GetDefaultClassForTeam(int team)
 {
-    if (team == 2)
-    {
-        return g_DefaultClassT;
-    }
-    else if (team == 3)
-    {
-        return g_DefaultClassCT;
-    }
-    else
-    {
-        return g_DefaultClassSpec;
-    }
+    if (team == 2) return g_DefaultClassT;
+    if (team == 3) return g_DefaultClassCT;
+    return g_DefaultClassSpec;
 }
 
 bool IsClassAllowedForTeam(int classId, int team)
 {
-    int mask = GetTeamMaskForClass(classId);
-    if (mask == TEAMMASK_ANY)
+    int teamMask = GetTeamMaskForClass(classId);
+    switch (team)
     {
-        return true;
+        case 2: return (teamMask & TEAMMASK_T) != 0;
+        case 3: return (teamMask & TEAMMASK_CT) != 0;
+        default: return true;
     }
-
-    if (team == 2 && (mask & TEAMMASK_T) != 0)
-    {
-        return true;
-    }
-    if (team == 3 && (mask & TEAMMASK_CT) != 0)
-    {
-        return true;
-    }
-    return false;
 }
 
-int ParseAbilityFlags(const char[] text, int fallback)
+// --- Class System Helpers ---
+
+int ParseAbilityFlags(const char[] flagsText, int defaultFlags)
 {
-    if (text[0] == '\0')
-    {
-        return fallback;
-    }
+    int flags = defaultFlags;
 
-    bool numeric = true;
-    for (int i = 0; i < strlen(text); i++)
-    {
-        if (!IsCharNumeric(text[i]))
-        {
-            numeric = false;
-            break;
-        }
-    }
-    if (numeric)
-    {
-        return StringToInt(text);
-    }
-
-    int mask = 0;
-    char buffer[256];
-    strcopy(buffer, sizeof(buffer), text);
-
-    char token[64];
-    int idx = 0;
-    while ((idx = SplitString(buffer, "|,; ", token, sizeof(token), idx)) != -1)
-    {
-        TrimString(token);
-        if (token[0] == '\0')
-        {
-            continue;
-        }
-
-        if (StrEqual(token, "revive", false) || StrEqual(token, "medic", false))
-        {
-            mask |= MSTAbility_Revive;
-        }
-        else if (StrEqual(token, "turret", false) || StrEqual(token, "sentry", false))
-        {
-            mask |= MSTAbility_Turret;
-        }
-        else if (StrEqual(token, "barricade", false) || StrEqual(token, "cover", false))
-        {
-            mask |= MSTAbility_Barricade;
-        }
-        else if (StrEqual(token, "grenadelauncher", false) || StrEqual(token, "explosive", false) || StrEqual(token, "demolition", false))
-        {
-            mask |= MSTAbility_GrenadeLauncher;
-        }
-        else if (StrEqual(token, "vision", false) || StrEqual(token, "nvg", false) || StrEqual(token, "thermal", false))
-        {
-            mask |= MSTAbility_SpecialVision;
-        }
-        else if (StrEqual(token, "flashlight", false) || StrEqual(token, "lamp", false))
-        {
-            mask |= MSTAbility_FlashlightForce;
-        }
-        else if (StrEqual(token, "scout", false) || StrEqual(token, "speed", false) || StrEqual(token, "recon", false))
-        {
-            mask |= MSTAbility_SpeedScout;
-        }
-        else if (StrEqual(token, "shield", false))
-        {
-            mask |= MSTAbility_ShieldCarrier;
-        }
-        else if (StrEqual(token, "gas", false) || StrEqual(token, "hazmat", false) || StrEqual(token, "smoke", false))
-        {
-            mask |= MSTAbility_GasImmunity;
-        }
-        else if (StrEqual(token, "engineer", false) || StrEqual(token, "tools", false))
-        {
-            mask |= MSTAbility_EngineerToolset;
-        }
-    }
-
-    return (mask == 0) ? fallback : mask;
-}
-
-int ParseTeamMask(const char[] text, int fallback)
-{
-    if (text[0] == '\0')
-    {
-        return fallback;
-    }
-
-    int mask = 0;
     char buffer[128];
-    strcopy(buffer, sizeof(buffer), text);
+    char parts[16][16];
+    strcopy(buffer, sizeof(buffer), flagsText);
+    int count = ExplodeString(buffer, "|", parts, sizeof(parts), sizeof(parts[]));
 
-    char token[32];
-    int idx = 0;
-    while ((idx = SplitString(buffer, "|,; ", token, sizeof(token), idx)) != -1)
+    for (int i = 0; i < count; i++)
     {
-        TrimString(token);
-        if (token[0] == '\0')
+        TrimString(parts[i]);
+        if (StrEqual(parts[i], "revive", false))
         {
-            continue;
+            flags |= MSTAbility_Revive;
         }
+        else if (StrEqual(parts[i], "turret", false))
+        {
+            flags |= MSTAbility_Turret;
+        }
+        else if (StrEqual(parts[i], "barricade", false))
+        {
+            flags |= MSTAbility_Barricade;
+        }
+        else if (StrEqual(parts[i], "grenadelauncher", false))
+        {
+            flags |= MSTAbility_GrenadeLauncher;
+        }
+        else if (StrEqual(parts[i], "specialvision", false))
+        {
+            flags |= MSTAbility_SpecialVision;
+        }
+        else if (StrEqual(parts[i], "flashlightforce", false))
+        {
+            flags |= MSTAbility_FlashlightForce;
+        }
+        else if (StrEqual(parts[i], "speedscout", false))
+        {
+            flags |= MSTAbility_SpeedScout;
+        }
+        else if (StrEqual(parts[i], "shieldcarrier", false))
+        {
+            flags |= MSTAbility_ShieldCarrier;
+        }
+        else if (StrEqual(parts[i], "gasimmunity", false))
+        {
+            flags |= MSTAbility_GasImmunity;
+        }
+        else if (StrEqual(parts[i], "engineertoolset", false))
+        {
+            flags |= MSTAbility_EngineerToolset;
+        }
+    }
 
-        if (StrEqual(token, "t", false) || StrEqual(token, "terrorist", false))
+    return flags;
+}
+
+int ParseTeamMask(const char[] teamText, int defaultMask)
+{
+    int mask = defaultMask;
+
+    char buffer[64];
+    char parts[8][8];
+    strcopy(buffer, sizeof(buffer), teamText);
+    int count = ExplodeString(buffer, "|", parts, sizeof(parts), sizeof(parts[]));
+
+    for (int i = 0; i < count; i++)
+    {
+        TrimString(parts[i]);
+        if (StrEqual(parts[i], "t", false))
         {
             mask |= TEAMMASK_T;
+            mask &= ~TEAMMASK_CT;  // Remove "any" if specific team specified.
         }
-        else if (StrEqual(token, "ct", false) || StrEqual(token, "counter", false))
+        else if (StrEqual(parts[i], "ct", false))
         {
             mask |= TEAMMASK_CT;
+            mask &= ~TEAMMASK_T;  // Remove "any" if specific team specified.
         }
-        else if (StrEqual(token, "any", false) || StrEqual(token, "both", false) || StrEqual(token, "all", false))
+        else if (StrEqual(parts[i], "any", false))
         {
-            mask |= TEAMMASK_ANY;
+            mask = TEAMMASK_ANY;
         }
     }
 
-    return (mask == 0) ? fallback : mask;
+    return mask;
+}
+
+int ParseSkinType(const char[] skinTypeStr)
+{
+    if (StrEqual(skinTypeStr, "female", false))
+        return SkinType_Female;
+    else if (StrEqual(skinTypeStr, "robot", false))
+        return SkinType_Robot;
+    else if (StrEqual(skinTypeStr, "longsleeve", false))
+        return SkinType_LongSleeve;
+    else if (StrEqual(skinTypeStr, "animal", false))
+        return SkinType_Animal;
+    else if (StrEqual(skinTypeStr, "monster", false))
+        return SkinType_Monster;
+    else // "regular" or default
+        return SkinType_Regular;
 }
 
 void ClearClassData()
@@ -819,6 +1205,18 @@ void ClearClassData()
     {
         g_ClassSounds.Clear();
     }
+    if (g_ClassGloveModels != null)
+    {
+        g_ClassGloveModels.Clear();
+    }
+    if (g_ClassGloveSkins != null)
+    {
+        g_ClassGloveSkins.Clear();
+    }
+    if (g_ClassSkinTypes != null)
+    {
+        g_ClassSkinTypes.Clear();
+    }
     if (g_DownloadModels != null)
     {
         g_DownloadModels.Clear();
@@ -831,4 +1229,215 @@ void ClearClassData()
     g_DefaultClassT = -1;
     g_DefaultClassCT = -1;
     g_DefaultClassSpec = -1;
+}
+
+// --- SDKHooks for updating gloves when player changes weapons ---
+// Эти хуки работают только при наличии viewmodel-ов и только для перчаток
+
+// Хук при экипировке оружия
+public void OnWeaponEquipPost(int client, int weapon)
+{
+    if (!IsClientInGame(client) || !g_ConfigsLoaded)
+        return;
+
+    // Обновляем перчатки при смене оружия
+    UpdateGlovesForClient(client);
+}
+
+// Хук при переключении оружия
+public void OnWeaponSwitchPost(int client, int weapon)
+{
+    if (!IsClientInGame(client) || !g_ConfigsLoaded)
+        return;
+
+    // Обновляем перчатки при переключении оружия
+    UpdateGlovesForClient(client);
+}
+
+// Обновление перчаток на viewmodel-е
+void UpdateGlovesForClient(int client)
+{
+    if (!IsClientInGame(client) || !g_ConfigsLoaded)
+        return;
+
+    int clientClass = g_ClientClass[client];
+    if (clientClass == -1)
+        return;
+
+    // Получаем информацию о перчатках для текущего класса
+    char gloveModel[PLATFORM_MAX_PATH];
+    int gloveSkin;
+    GetGloveInfoForClass(clientClass, gloveModel, sizeof(gloveModel), gloveSkin);
+
+    if (gloveModel[0] == '\0')
+        return; // Нет модели перчаток для этого класса
+
+    // Обновляем перчатки на обоих viewmodel-ах
+    UpdateGloveOnViewModel(client, 0, gloveModel, gloveSkin);
+    UpdateGloveOnViewModel(client, 1, gloveModel, gloveSkin);
+}
+
+void UpdateGloveOnViewModel(int client, int viewModelIndex, const char[] gloveModel, int gloveSkin)
+{
+    // Получаем viewmodel игрока
+    int viewModel = GetEntPropEnt(client, PropData, viewModelIndex == 0 ? "m_hViewModel[0]" : "m_hViewModel[1]");
+    if (viewModel == -1 || !IsValidEntity(viewModel))
+        return;
+
+    // Устанавливаем модель перчаток
+    SetVariantString(gloveModel);
+    AcceptEntityInput(viewModel, "SetModel");
+}
+
+// Хуки для отслеживания создания viewmodel-ов
+public void OnEntitySpawned(const char[] output, int caller, int activator, float delay)
+{
+    // Проверяем, является ли entity viewmodel-ом
+    char className[64];
+    GetEntityClassname(caller, className, sizeof(className));
+
+    if (StrEqual(className, "viewmodel", false))
+    {
+        // Проверяем, принадлежит ли viewmodel игроку
+        int owner = GetEntPropEnt(caller, PropSend, "m_hOwner");
+        if (owner > 0 && owner <= MaxClients && IsClientInGame(owner))
+        {
+            // Получаем текущий класс игрока и обновляем перчатки на этом viewmodel-е
+            int clientClass = g_ClientClass[owner];
+            if (clientClass != -1)
+            {
+                char gloveModel[PLATFORM_MAX_PATH];
+                int gloveSkin;
+                GetGloveInfoForClass(clientClass, gloveModel, sizeof(gloveModel), gloveSkin);
+
+                if (gloveModel[0] != '\0')
+                {
+                    SetVariantString(gloveModel);
+                    AcceptEntityInput(caller, "SetModel");
+                }
+            }
+        }
+    }
+}
+
+// Событие при спауне игрока
+public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
+{
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (client <= 0 || client > MaxClients || !IsClientInGame(client))
+        return;
+
+    // Обновляем перчатки после спауна игрока
+    UpdateGlovesForClient(client);
+}
+
+// --- ThirdPerson Functions ---
+
+void SetClientViewMode(int client, int mode)
+{
+    if (client < 1 || client > MaxClients || !IsClientInGame(client))
+    {
+        return;
+    }
+
+    switch (mode)
+    {
+        case ThirdPersonMode_FirstPerson:
+        {
+            // Включаем firstperson
+            SetThirdPersonClient(client, false);
+        }
+        case ThirdPersonMode_ThirdPerson:
+        {
+            // Включаем thirdperson
+            SetThirdPersonClient(client, true);
+        }
+        case ThirdPersonMode_ThirdPersonStatic:
+        {
+            // Включаем thirdperson и фиксируем угол (имитация thirdperson_mayamode)
+            SetThirdPersonClient(client, true);
+            // Пользовательский угол устанавливается отдельно
+        }
+    }
+}
+
+void SetThirdPersonClient(int client, bool enabled)
+{
+    // Устанавливаем клиентскую переменную для thirdperson
+    // В CS:Source для этого нужно отправить клиентскую команду
+    if (enabled)
+    {
+        // Включаем thirdperson
+        ClientCommand(client, "cl_thirdperson 1");
+    }
+    else
+    {
+        // Выключаем thirdperson
+        ClientCommand(client, "cl_thirdperson 0");
+    }
+}
+
+void GetThirdPersonModeName(int mode, char[] buffer, int maxlen)
+{
+    switch (mode)
+    {
+        case ThirdPersonMode_FirstPerson:
+            strcopy(buffer, maxlen, "First Person");
+        case ThirdPersonMode_ThirdPerson:
+            strcopy(buffer, maxlen, "Third Person");
+        case ThirdPersonMode_ThirdPersonStatic:
+            strcopy(buffer, maxlen, "Static Third Person");
+        default:
+            strcopy(buffer, maxlen, "Unknown");
+    }
+}
+
+// События для thirdperson
+public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_CvarTpEnabled.BoolValue || !g_CvarTpFreezeTime.BoolValue)
+    {
+        return;
+    }
+
+    // Включаем thirdperson для всех игроков на время freeze time
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && !IsFakeClient(i))
+        {
+            g_ClientTpMode[i] = ThirdPersonMode_ThirdPerson;
+            SetClientViewMode(i, ThirdPersonMode_ThirdPerson);
+        }
+    }
+}
+
+public void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
+{
+    // Отключаем thirdperson для всех игроков
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && !IsFakeClient(i) && g_ClientTpMode[i] != ThirdPersonMode_FirstPerson)
+        {
+            g_ClientTpMode[i] = ThirdPersonMode_FirstPerson;
+            SetClientViewMode(i, ThirdPersonMode_FirstPerson);
+        }
+    }
+}
+
+public void Event_FreezeEnd(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_CvarTpEnabled.BoolValue || !g_CvarTpFreezeTimeEnd.BoolValue)
+    {
+        return;
+    }
+
+    // Отключаем thirdperson после окончания freeze time
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && !IsFakeClient(i) && g_ClientTpMode[i] == ThirdPersonMode_ThirdPerson)
+        {
+            g_ClientTpMode[i] = ThirdPersonMode_FirstPerson;
+            SetClientViewMode(i, ThirdPersonMode_FirstPerson);
+        }
+    }
 }

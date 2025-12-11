@@ -30,14 +30,6 @@ enum SkinType
     SkinType_Monster          // Чудовище
 };
 
-// Типы видов от третьего лица
-enum ThirdPersonMode
-{
-    ThirdPersonMode_FirstPerson = 0,      // 0: Обычный вид от первого лица
-    ThirdPersonMode_ThirdPerson,          // 1: Вид от третьего лица (обычный)
-    ThirdPersonMode_ThirdPersonStatic     // 2: Вид от третьего лица (статичный, как thirdperson_mayamode)
-};
-
 #define ZH_MST_LIBRARY "zh_mst"
 
 /**
@@ -124,30 +116,6 @@ native bool MST_SetClassSkinType(int classId, int skinType);
  * @return Skin type from SkinType enum.
  */
 native int MST_GetClassSkinType(int classId);
-
-/**
- * Sets the third-person view mode for a client.
- * @param client        Client index.
- * @param mode          Third person mode from ThirdPersonMode enum.
- * @param sendUpdate    Whether to immediately send the view mode update to the client.
- * @return true on success.
- */
-native bool MST_TP_SetClientThirdPersonMode(int client, int mode, bool sendUpdate = true);
-
-/**
- * Gets the current third-person view mode for a client.
- * @param client        Client index.
- * @return Third person mode from ThirdPersonMode enum.
- */
-native int MST_TP_GetClientThirdPersonMode(int client);
-
-/**
- * Toggles the third-person view mode for a client (first/third person).
- * @param client        Client index.
- * @param sendUpdate    Whether to immediately send the view mode update to the client.
- * @return true on success.
- */
-native bool MST_TP_ToggleClientThirdPersonMode(int client, bool sendUpdate = true);
 
 /**
  * Forward fired after a class is changed.
