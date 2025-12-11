@@ -1,5 +1,0 @@
-﻿- All_Docs.md сейчас сгруппирован: Core & Architecture (ZloyHohol-IntegrationPack.md, ZH-Sys-Architecture.md, Foundation_Analysis.md), Legacy & Security (Legacy_Plugin_Classifier.md, Suspicious_Directories_Analysis.md), SM Base & Summaries (SM_Standard_Plugins_Modifications.md, Gemini_Documentation_Summary.md).
-- Источник: объединены оригинальные .md с заголовками "===== <file> =====".
-- Если нужно вернуть исходные отдельные файлы, брать из резервной копии (в каталоге их уже нет).
-- Веб-панель: materialadmin в xampp/htdocs/materialadmin, база materialadmin/ma_user/ma_pass (см. databases.cfg и data/database.php).
-- SM/websocket: исходники sm-ext-websocket лежат в Zh-sys/MetaMod/sm-ext-websocket.

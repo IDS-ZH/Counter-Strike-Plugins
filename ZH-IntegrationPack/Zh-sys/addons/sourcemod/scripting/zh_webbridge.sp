@@ -4,6 +4,7 @@
 #include <sourcemod>
 #include <system2>
 #include <zh_core>
+#include <json>
 // Optional: uncomment when sm-ext-websocket is built and websocket.inc is available.
 //#include <websocket>
 
@@ -131,7 +132,235 @@ void ConnectWs()
 
 public void OnWsMessage(Handle ws, const char[] message, int size)
 {
-    // TODO: route commands from panel (e.g., run vote, send MOTD link, refresh configs).
+    // Parse and route commands from web panel
+    ParseWebSocketMessage(message);
+}
+
+void ParseWebSocketMessage(const char[] message)
+{
+    // Parse the JSON message
+    JSON_Object json = json_decode(message);
+    if (json == null)
+    {
+        ZH_LogWarn("WebBridge: Failed to decode JSON message: %s", message);
+        return;
+    }
+
+    char msgType[64];
+    json_getstring(json, "type", msgType, sizeof(msgType));
+
+    if (StrEqual(msgType, "command", false))
+    {
+        HandleCommandMessage(json);
+    }
+    else if (StrEqual(msgType, "cvar_set", false))
+    {
+        HandleCvarSetMessage(json);
+    }
+    else if (StrEqual(msgType, "config_reload", false))
+    {
+        HandleConfigReloadMessage(json);
+    }
+    else if (StrEqual(msgType, "server_command", false))
+    {
+        HandleServerCommandMessage(json);
+    }
+    else if (StrEqual(msgType, "broadcast", false))
+    {
+        HandleBroadcastMessage(json);
+    }
+    else
+    {
+        ZH_LogWarn("WebBridge: Unknown message type: %s", msgType);
+    }
+
+    json_cleanup(json);
+}
+
+void HandleCommandMessage(JSON_Object json)
+{
+    char command[256];
+    json_getstring(json, "command", command, sizeof(command));
+
+    // Validate and execute admin commands
+    if (StrEqual(command, "map", false) ||
+        StrEqual(command, "changelevel", false) ||
+        StrEqual(command, "exec", false) ||
+        StrEqual(command, "kick", false) ||
+        StrEqual(command, "ban", false))
+    {
+        ZH_LogInfo("WebBridge: Executing command: %s", command);
+        ServerCommand("%s", command);
+    }
+    else
+    {
+        ZH_LogWarn("WebBridge: Unauthorized command attempted: %s", command);
+    }
+}
+
+void HandleCvarSetMessage(JSON_Object json)
+{
+    char cvarName[64];
+    char cvarValue[256];
+
+    json_getstring(json, "cvar", cvarName, sizeof(cvarName));
+    json_getstring(json, "value", cvarValue, sizeof(cvarValue));
+
+    // Validate cvar name to prevent unauthorized changes
+    if (IsValidCvarForWebControl(cvarName))
+    {
+        ConVar convar = FindConVar(cvarName);
+        if (convar != null)
+        {
+            // Check if it's a ZH-sys specific cvar or a server cvar
+            if (StrContains(cvarName, "zh_", false) == 0)
+            {
+                // ZH-sys specific cvar - set directly
+                convar.SetString(cvarValue);
+                ZH_LogInfo("WebBridge: Set ZH-sys CVAR '%s' to '%s'", cvarName, cvarValue);
+            }
+            else
+            {
+                // Standard server cvar - validate further if needed
+                convar.SetString(cvarValue);
+                ZH_LogInfo("WebBridge: Set server CVAR '%s' to '%s'", cvarName, cvarValue);
+            }
+
+            // Fire a forward so other modules can react to CVAR changes
+            Call_ZHCvarChangedForward(cvarName, cvarValue);
+        }
+        else
+        {
+            ZH_LogWarn("WebBridge: CVAR not found: %s", cvarName);
+        }
+    }
+    else
+    {
+        ZH_LogWarn("WebBridge: Unauthorized CVAR change attempted: %s", cvarName);
+    }
+}
+
+bool IsValidCvarForWebControl(const char[] cvarName)
+{
+    // ZH-sys specific CVARs
+    if (StrContains(cvarName, "zh_", false) == 0)
+    {
+        return true;
+    }
+
+    // Read allowed CVARs from configuration file
+    char configPath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, configPath, sizeof(configPath), "configs/ZH-sys/Tools/WebBridge/zh_web_cvar_config.cfg");
+
+    if (FileExists(configPath))
+    {
+        KeyValues kv = new KeyValues("zh_web_cvar_config");
+        if (kv.ImportFromFile(configPath))
+        {
+            // Navigate to the main section
+            if (kv.GotoFirstSubKey(false))
+            {
+                do
+                {
+                    char allowedCvar[64];
+                    kv.GetSectionName(allowedCvar, sizeof(allowedCvar));
+
+                    if (StrEqual(cvarName, allowedCvar, false))
+                    {
+                        delete kv;
+                        return true;
+                    }
+                }
+                while (kv.GotoNextKey(false));
+            }
+        }
+        delete kv;
+    }
+
+    return false;
+}
+
+void HandleConfigReloadMessage(JSON_Object json)
+{
+    char configType[64];
+    json_getstring(json, "config", configType, sizeof(configType));
+
+    if (StrEqual(configType, "zh_mst", false))
+    {
+        // Reload MST configuration
+        ServerCommand("sm_mst_reload");
+        ZH_LogInfo("WebBridge: Reloaded MST configuration");
+    }
+    else if (StrEqual(configType, "zh_modes", false))
+    {
+        // Reload modes configuration
+        ServerCommand("exec sourcemod/sm_mode_dm.cfg"); // or appropriate config
+        ZH_LogInfo("WebBridge: Reloaded modes configuration");
+    }
+    else
+    {
+        ZH_LogWarn("WebBridge: Unknown config type for reload: %s", configType);
+    }
+}
+
+void HandleServerCommandMessage(JSON_Object json)
+{
+    char command[256];
+    json_getstring(json, "cmd", command, sizeof(command));
+
+    // Execute server command - restricted to safe commands
+    if (IsValidServerCommand(command))
+    {
+        ServerCommand(command);
+        ZH_LogInfo("WebBridge: Executed server command: %s", command);
+    }
+    else
+    {
+        ZH_LogWarn("WebBridge: Unauthorized server command attempted: %s", command);
+    }
+}
+
+bool IsValidServerCommand(const char[] command)
+{
+    // List of allowed server commands
+    char allowedCommands[][] = {
+        "exec", "map", "changelevel", "sm_", "say", "say_team", "kickid", "addip", "removeip"
+    };
+
+    for (int i = 0; i < sizeof(allowedCommands); i++)
+    {
+        if (StrContains(command, allowedCommands[i], false) == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void HandleBroadcastMessage(JSON_Object json)
+{
+    char message[512];
+    json_getstring(json, "msg", message, sizeof(message));
+
+    // Broadcast message to all players
+    PrintToChatAll("[ZH-Web] %s", message);
+    PrintToServer("[ZH-Web] %s", message);
+}
+
+// Forward for other modules to react to CVAR changes from web panel
+void Call_ZHCvarChangedForward(const char[] cvarName, const char[] cvarValue)
+{
+    static GlobalForward hCvarChangedForward = null;
+    if (hCvarChangedForward == null)
+    {
+        hCvarChangedForward = CreateGlobalForward("ZH_WebCvarChanged", ET_Ignore, Param_String, Param_String);
+    }
+
+    Call_StartForward(hCvarChangedForward);
+    Call_PushString(cvarName);
+    Call_PushString(cvarValue);
+    Call_Finish();
 }
 
 public void OnWsError(Handle ws, const char[] error)

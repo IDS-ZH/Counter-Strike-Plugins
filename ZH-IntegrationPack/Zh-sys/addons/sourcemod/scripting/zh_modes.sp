@@ -93,5 +93,24 @@ public Action Command_SetMode(int client, int args)
     }
 
     ReplyToCommand(client, "[ZH] %s set to %d", mode, value);
+
+    // Notify other modules about the mode change
+    Call_ZHModeChangedForward(mode, value);
+
     return Plugin_Handled;
+}
+
+// Forward for other modules to react to mode changes
+void Call_ZHModeChangedForward(const char[] mode, int value)
+{
+    static GlobalForward hModeChangedForward = null;
+    if (hModeChangedForward == null)
+    {
+        hModeChangedForward = CreateGlobalForward("ZH_ModeChanged", ET_Ignore, Param_String, Param_Cell);
+    }
+
+    Call_StartForward(hModeChangedForward);
+    Call_PushString(mode);
+    Call_PushCell(value);
+    Call_Finish();
 }
