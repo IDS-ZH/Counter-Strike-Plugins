@@ -26,15 +26,8 @@ public void OnPluginStart()
 
     ZH_RegisterModule("sm");
 
-    // Attempt to load the SoundManifest plugin if available
-    if (LoadPlugin("SoundManifest.smx", true, true))
-    {
-        LogMessage("[ZH-SM] Successfully loaded SoundManifest plugin");
-    }
-    else
-    {
-        LogMessage("[ZH-SM] SoundManifest plugin not found, will depend on external load");
-    }
+    // Wrapper only: the actual SoundManifest implementation is expected to be loaded separately.
+    LogMessage("[ZH-SM] Wrapper loaded. Ensure SoundManifest.smx is installed/loaded if you need SoundManifest features.");
 }
 
 public void OnAllPluginsLoaded()

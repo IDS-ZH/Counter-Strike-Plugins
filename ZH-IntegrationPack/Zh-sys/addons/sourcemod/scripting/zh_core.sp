@@ -2,333 +2,199 @@
 #pragma newdecls required
 
 #include <sourcemod>
-#include <zh_core>
+#include <ZH-sys>
 
-#define PLUGIN_VERSION "0.1.0-dev"
-#define CONFIG_ROOT "configs/ZH-sys"
-#define LOG_ROOT "logs/ZH-sys"
-#define CORE_LOG_FILE "zh_core.log"
-
-ConVar g_CvarDebug;
-ConVar g_CvarLogLevel;
-ArrayList g_Modules;
-
-public Plugin myinfo =
+public Plugin myinfo = 
 {
     name = "ZH-sys Core",
-    author = "ZloyHohol integration workbench",
-    description = "Core utilities and shared natives for ZH-sys modules.",
-    version = PLUGIN_VERSION,
-    url = ""
+    author = "Antigravity & mge_engineer",
+    description = "Ядро для интеграции модулей ZH-sys",
+    version = ZH_SYS_VERSION,
+    url = "https://github.com/ZloyHohol"
 };
 
-public APLRes AskPluginLoad2(Handle self, bool late, char[] error, int errMax)
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-    RegPluginLibrary(ZH_CORE_LIBRARY);
-    CreateNative("ZH_IsDebugEnabled", Native_IsDebugEnabled);
-    CreateNative("ZH_LogInfo", Native_LogInfo);
-    CreateNative("ZH_LogWarn", Native_LogWarn);
-    CreateNative("ZH_LogError", Native_LogError);
-    CreateNative("ZH_BuildConfigDir", Native_BuildConfigDir);
-    CreateNative("ZH_BuildConfigPath", Native_BuildConfigPath);
-    CreateNative("ZH_GetTranslationsToken", Native_GetTranslationsToken);
-    CreateNative("ZH_RegisterModule", Native_RegisterModule);
+    RegPluginLibrary("zh_sys");
+    
+    CreateNative("ZH_Core_RegisterModule", Native_RegisterModule);
+    CreateNative("ZH_Core_GetPlayerId", Native_GetPlayerId);
+    
     return APLRes_Success;
 }
 
+Database g_hDatabase = null;
+int g_PlayerZhId[MAXPLAYERS + 1];
+
 public void OnPluginStart()
 {
-    g_Modules = new ArrayList(32);
-
-    g_CvarDebug = CreateConVar("zh_core_debug", "0", "Enables verbose debug output for ZH-sys modules.");
-    g_CvarLogLevel = CreateConVar("zh_core_loglevel", "1", "0=errors only, 1=warnings, 2=info, 3=debug.");
-
-    AutoExecConfig(true, "zh_core", "sourcemod");
-
-    LoadTranslations("zh_core.phrases");
-
-    CreateCorePaths();
-
-    RegAdminCmd("sm_zhdiag", Command_ZHDiag, ADMFLAG_GENERIC, "Prints ZH-sys core diagnostics.");
+    PrintToServer("[ZH-sys] Core module initialized (v%s)", ZH_SYS_VERSION);
+    
+    // Инициализация базы данных (MaterialAdmin или кастомная таблица)
+    Database_Connect();
 }
 
-public void OnAllPluginsLoaded()
+public void OnClientPutInServer(int client)
 {
-    // Ensure core is always present in diagnostics.
-    RegisterModuleInternal("core");
+    // Очистка старых данных
+    g_PlayerZhId[client] = 0;
 }
 
-// --- Natives -----------------------------------------------------------------
-
-public any Native_IsDebugEnabled(Handle plugin, int numParams)
+public void OnClientPostAdminCheck(int client)
 {
-    return g_CvarDebug != null && g_CvarDebug.BoolValue;
+    if (IsFakeClient(client)) return;
+    
+    char authId[32];
+    if (!GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId)) || StrEqual(authId, "STEAM_ID_PENDING") || StrEqual(authId, "STEAM_ID_LAN"))
+    {
+        // Игрок без Steam (или упал Steam-сервер авторизации). 
+        // Здесь мы будем вызывать кастомную авторизацию по IP + Password / Token.
+        LogMessage("[ZH-sys] Клиент %N подключился без валидного SteamID (%s). Ожидание кастомной авторизации...", client, authId);
+    }
+    else
+    {
+        // Обычная авторизация по SteamID
+        AuthenticatePlayerBySteam(client, authId);
+    }
 }
 
-public any Native_LogInfo(Handle plugin, int numParams)
+// --- Работа с БД ---
+void Database_Connect()
 {
-    char message[256];
-    FormatNativeString(0, 1, 2, message, sizeof(message));
-    ZhLog(LOGLEVEL_INFO, "%s", message);
-    return 0;
+    if (SQL_CheckConfig("materialadmin"))
+    {
+        Database.Connect(SQL_OnConnect, "materialadmin");
+    }
+    else if (SQL_CheckConfig("zh_sys"))
+    {
+        Database.Connect(SQL_OnConnect, "zh_sys");
+    }
+    else
+    {
+        SetFailState("[ZH-sys] Не найдена конфигурация БД 'materialadmin' или 'zh_sys' в databases.cfg!");
+    }
 }
 
-public any Native_LogWarn(Handle plugin, int numParams)
+public void SQL_OnConnect(Database db, const char[] error, any data)
 {
-    char message[256];
-    FormatNativeString(0, 1, 2, message, sizeof(message));
-    ZhLog(LOGLEVEL_WARN, "%s", message);
-    return 0;
+    if (db == null)
+    {
+        SetFailState("[ZH-sys] Ошибка подключения к БД: %s", error);
+        return;
+    }
+    
+    g_hDatabase = db;
+    PrintToServer("[ZH-sys] Успешное подключение к БД!");
+    
+    // Создаем таблицу для аккаунтов ZH-sys, если ее нет
+    // Мы храним auth_token для входа без Steam (IP или пароль)
+    char query[512];
+    Format(query, sizeof(query), 
+        "CREATE TABLE IF NOT EXISTS `zh_accounts` (" ...
+        "`zh_id` INT AUTO_INCREMENT PRIMARY KEY, " ...
+        "`steamid` VARCHAR(32) NOT NULL DEFAULT '', " ...
+        "`auth_token` VARCHAR(64) NOT NULL DEFAULT '', " ...
+        "`name` VARCHAR(64) NOT NULL DEFAULT 'unnamed', " ...
+        "`last_ip` VARCHAR(32) NOT NULL DEFAULT ''" ...
+        ") DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        
+    g_hDatabase.Query(SQL_OnTableCreated, query);
 }
 
-public any Native_LogError(Handle plugin, int numParams)
+public void SQL_OnTableCreated(Database db, DBResultSet results, const char[] error, any data)
 {
-    char message[256];
-    FormatNativeString(0, 1, 2, message, sizeof(message));
-    ZhLog(LOGLEVEL_ERROR, "%s", message);
-    return 0;
+    if (results == null)
+    {
+        LogError("[ZH-sys] Ошибка создания таблицы zh_accounts: %s", error);
+    }
+    else
+    {
+        PrintToServer("[ZH-sys] Таблица zh_accounts проверена/создана.");
+    }
 }
 
-public any Native_BuildConfigDir(Handle plugin, int numParams)
+// --- Авторизация ---
+void AuthenticatePlayerBySteam(int client, const char[] steamId)
 {
-    ZHConfigScope scope = view_as<ZHConfigScope>(GetNativeCell(1));
-    int maxlen = GetNativeCell(3);
-    char[] buffer = new char[maxlen];
-    BuildConfigDir(scope, buffer, maxlen);
-    SetNativeString(2, buffer, maxlen);
-    return 0;
+    if (g_hDatabase == null) return;
+    
+    char safeSteam[32], safeName[64];
+    g_hDatabase.Escape(steamId, safeSteam, sizeof(safeSteam));
+    
+    char name[MAX_NAME_LENGTH];
+    GetClientName(client, name, sizeof(name));
+    g_hDatabase.Escape(name, safeName, sizeof(safeName));
+    
+    // Запрашиваем ID, и если его нет, создаем (UPSERT логика)
+    char query[512];
+    Format(query, sizeof(query), "SELECT `zh_id` FROM `zh_accounts` WHERE `steamid` = '%s'", safeSteam);
+    
+    // Передаем UserID, чтобы обезопасить себя от выхода клиента до завершения запроса
+    g_hDatabase.Query(SQL_OnAuthSteam, query, GetClientUserId(client));
 }
 
-public any Native_BuildConfigPath(Handle plugin, int numParams)
+public void SQL_OnAuthSteam(Database db, DBResultSet results, const char[] error, any userid)
 {
-    ZHConfigScope scope = view_as<ZHConfigScope>(GetNativeCell(1));
-    int maxlen = GetNativeCell(4);
-    char[] fileName = new char[PLATFORM_MAX_PATH];
-    GetNativeString(2, fileName, sizeof(fileName));
-
-    char[] buffer = new char[maxlen];
-    BuildConfigPath(scope, fileName, buffer, maxlen);
-    SetNativeString(3, buffer, maxlen);
-    return 0;
+    int client = GetClientOfUserId(userid);
+    if (!client) return; // Игрок уже вышел
+    
+    if (results == null)
+    {
+        LogError("[ZH-sys] Ошибка проверки аккаунта: %s", error);
+        return;
+    }
+    
+    if (results.FetchRow())
+    {
+        g_PlayerZhId[client] = results.FetchInt(0);
+        LogMessage("[ZH-sys] Клиент %N авторизован. ZH_ID: %d", client, g_PlayerZhId[client]);
+    }
+    else
+    {
+        // Игрок впервые на сервере, регистрируем его
+        char authId[32], name[MAX_NAME_LENGTH], ip[32];
+        GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId));
+        GetClientName(client, name, sizeof(name));
+        GetClientIP(client, ip, sizeof(ip));
+        
+        char query[512];
+        Format(query, sizeof(query), 
+            "INSERT INTO `zh_accounts` (`steamid`, `name`, `last_ip`) VALUES ('%s', '%s', '%s')", 
+            authId, name, ip);
+            
+        g_hDatabase.Query(SQL_OnAccountCreated, query, userid);
+    }
 }
 
-public any Native_GetTranslationsToken(Handle plugin, int numParams)
+public void SQL_OnAccountCreated(Database db, DBResultSet results, const char[] error, any userid)
 {
-    int maxlen = GetNativeCell(2);
-    char[] buffer = new char[maxlen];
-    strcopy(buffer, maxlen, "zh_core");
-    SetNativeString(1, buffer, maxlen);
-    return 0;
+    int client = GetClientOfUserId(userid);
+    if (!client) return;
+    
+    if (results == null)
+    {
+        LogError("[ZH-sys] Ошибка создания аккаунта: %s", error);
+        return;
+    }
+    
+    g_PlayerZhId[client] = results.InsertId;
+    LogMessage("[ZH-sys] Новый аккаунт зарегистрирован для %N. ZH_ID: %d", client, g_PlayerZhId[client]);
 }
 
+// --- Нативы ---
 public any Native_RegisterModule(Handle plugin, int numParams)
 {
-    char module[64];
-    GetNativeString(1, module, sizeof(module));
-    RegisterModuleInternal(module);
+    char moduleName[64];
+    GetNativeString(1, moduleName, sizeof(moduleName));
+    PrintToServer("[ZH-sys] Зарегистрирован модуль: %s", moduleName);
     return 0;
 }
 
-// --- Commands ----------------------------------------------------------------
-
-public Action Command_ZHDiag(int client, int args)
+public any Native_GetPlayerId(Handle plugin, int numParams)
 {
-    ReplyToCommand(client, "[ZH] Core version %s", PLUGIN_VERSION);
-
-    char cfgDir[PLATFORM_MAX_PATH];
-    BuildConfigDir(ZHConfig_Core, cfgDir, sizeof(cfgDir));
-    ReplyToCommand(client, "[ZH] Config root: %s", cfgDir);
-
-    int modulesCount = g_Modules != null ? g_Modules.Length : 0;
-    ReplyToCommand(client, "[ZH] Registered modules: %d", modulesCount);
-
-    for (int i = 0; i < modulesCount; i++)
-    {
-        char name[64];
-        g_Modules.GetString(i, name, sizeof(name));
-        ReplyToCommand(client, " - %s", name);
-    }
-
-    return Plugin_Handled;
-}
-
-// --- Internals ---------------------------------------------------------------
-
-enum ZhLogLevel
-{
-    LOGLEVEL_ERROR = 0,
-    LOGLEVEL_WARN,
-    LOGLEVEL_INFO,
-    LOGLEVEL_DEBUG
-};
-
-void CreateCorePaths()
-{
-    char path[PLATFORM_MAX_PATH];
-
-    BuildPath(Path_SM, path, sizeof(path), CONFIG_ROOT);
-    CreateDirectory(path, 511);
-
-    BuildPath(Path_SM, path, sizeof(path), LOG_ROOT);
-    CreateDirectory(path, 511);
-}
-
-ZhLogLevel GetConfiguredLogLevel()
-{
-    if (g_CvarLogLevel == null)
-    {
-        return LOGLEVEL_WARN;
-    }
-
-    int value = g_CvarLogLevel.IntValue;
-
-    switch (value)
-    {
-        case 0:
-        {
-            return LOGLEVEL_ERROR;
-        }
-        case 1:
-        {
-            return LOGLEVEL_WARN;
-        }
-        case 2:
-        {
-            return LOGLEVEL_INFO;
-        }
-        default:
-        {
-            return LOGLEVEL_DEBUG;
-        }
-    }
-}
-
-void ZhLog(ZhLogLevel level, const char[] fmt, any ...)
-{
-    ZhLogLevel configured = GetConfiguredLogLevel();
-    if (level > configured)
-    {
-        return;
-    }
-
-    char message[256];
-    VFormat(message, sizeof(message), fmt, 3);
-
-    char logPath[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, logPath, sizeof(logPath), "%s/%s", LOG_ROOT, CORE_LOG_FILE);
-
-    switch (level)
-    {
-        case LOGLEVEL_ERROR:
-        {
-            LogError("[ZH-core] %s", message);
-            LogToFileEx(logPath, "[ERROR] %s", message);
-            break;
-        }
-        case LOGLEVEL_WARN:
-        {
-            LogMessage("[ZH-core] %s", message);
-            LogToFileEx(logPath, "[WARN] %s", message);
-            break;
-        }
-        case LOGLEVEL_INFO:
-        {
-            LogMessage("[ZH-core] %s", message);
-            LogToFileEx(logPath, "[INFO] %s", message);
-            break;
-        }
-        default:
-        {
-            // Debug falls through only when explicitly enabled.
-            if (g_CvarDebug != null && g_CvarDebug.BoolValue)
-            {
-                LogMessage("[ZH-core] %s", message);
-                LogToFileEx(logPath, "[DEBUG] %s", message);
-            }
-            break;
-        }
-    }
-}
-
-void BuildConfigDir(ZHConfigScope scope, char[] buffer, int maxlen)
-{
-    const char[] scopeDir = GetScopeDir(scope);
-    BuildPath(Path_SM, buffer, maxlen, "%s/%s", CONFIG_ROOT, scopeDir);
-    CreateDirectory(buffer, 511);
-}
-
-void BuildConfigPath(ZHConfigScope scope, const char[] filename, char[] buffer, int maxlen)
-{
-    char dir[PLATFORM_MAX_PATH];
-    BuildConfigDir(scope, dir, sizeof(dir));
-    BuildPath(Path_SM, buffer, maxlen, "%s/%s", dir, filename);
-}
-
-const char[] GetScopeDir(ZHConfigScope scope)
-{
-    switch (scope)
-    {
-        case ZHConfig_Core:
-        {
-            return "Core";
-        }
-        case ZHConfig_MST:
-        {
-            return "MST";
-        }
-        case ZHConfig_PRD:
-        {
-            return "PRD";
-        }
-        case ZHConfig_Sound:
-        {
-            return "SM";
-        }
-        case ZHConfig_Smoke:
-        {
-            return "SBC";
-        }
-        case ZHConfig_SBC:
-        {
-            return "SBC";
-        }
-        case ZHConfig_Classes:
-        {
-            return "Classes";
-        }
-        default:
-        {
-            return "Custom";
-        }
-    }
-}
-
-void RegisterModuleInternal(const char[] moduleName)
-{
-    if (g_Modules == null)
-    {
-        return;
-    }
-
-    char lowered[64];
-    strcopy(lowered, sizeof(lowered), moduleName);
-    TrimString(lowered);
-    if (lowered[0] == '\0')
-    {
-        return;
-    }
-
-    // Avoid duplicates.
-    for (int i = 0; i < g_Modules.Length; i++)
-    {
-        char existing[64];
-        g_Modules.GetString(i, existing, sizeof(existing));
-        if (StrEqual(existing, lowered, false))
-        {
-            return;
-        }
-    }
-
-    g_Modules.PushString(lowered);
-    ZhLog(LOGLEVEL_INFO, "Registered module: %s", lowered);
+    int client = GetNativeCell(1);
+    if (client < 1 || client > MaxClients || !IsClientInGame(client))
+        return 0;
+        
+    return g_PlayerZhId[client];
 }

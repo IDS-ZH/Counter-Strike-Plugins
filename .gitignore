@@ -9,8 +9,8 @@ Counter-Strike-Plugins.code-workspace
 Counter-Strike-Plugins-wsl.code-workspace
 
 Gemini_Changelog.md
-/sourcemod-1.13.0-git7260-windows
-/sourcemod-1.12.0-git7210-windows
+sourcemod-1.13.0-git7260-windows/
+sourcemod-1.12.0-git7210-windows/
 Sourcemod-1.13-CUSTOMized
 default_game_dir
 # Игнорировать файлы для отладки плагинов
@@ -64,5 +64,7 @@ ZH-IntegrationPack/AutoExec.cfg
 ZH-IntegrationPack/совет-грока(может напиздеть).txt
 ZH-IntegrationPack/current_initialize_CVAR.txt
 .github\workflows
-/ZH-IntegrationPack/xampp
-/CSS-GH
+CSS-GH/
+MM+SM/
+ZH-IntegrationPack/Zh-sys/MetaMod-Sources/sm-ripext/
+ZH-IntegrationPack/Zh-sys/CUSTOM/Custom_Maps/

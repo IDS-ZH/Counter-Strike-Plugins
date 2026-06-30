@@ -31,6 +31,7 @@ enum struct SmokeData
 }
 
 ArrayList g_Smokes;
+StringMap g_smPermissions;
 
 // ----------------------------
 // CVars
@@ -52,7 +53,7 @@ public Plugin myinfo =
 {
     name        = "SmokeBomb Combo V3.5",
     author      = "ZloyHohol",
-    description = "Простой, надёжный Токсичный дым с меню и само-очистками",
+    description = "Настраиваемый, Токсичный дым с уровнями доступа",
     version     = PLUGIN_VERSION
 };
 
@@ -62,6 +63,7 @@ public Plugin myinfo =
 public void OnPluginStart()
 {
     g_Smokes = new ArrayList(sizeof(SmokeData));
+    g_smPermissions = new StringMap();
 
     g_hEnabled         = CreateConVar("sm_sbc_enabled", "1", "Включить/выключить плагин", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     g_hDamageEnabled   = CreateConVar("sm_sbc_damage_enabled", "1", "Включить урон дымом", FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -80,27 +82,134 @@ public void OnPluginStart()
 
     RegConsoleCmd("sbc", Command_SBC, "Открыть меню SBC");
     RegConsoleCmd("sm_sbc", Command_SBC, "Открыть меню SBC");
+    RegAdminCmd("sm_sbc_reload", Command_ReloadConfig, ADMFLAG_ROOT, "Перезагрузить конфиг доступов SBC");
 
     PrintToServer("[SBC] v%s загружен", PLUGIN_VERSION);
-    AutoExecConfig(true, "SM_SBC-v3.5");
     
-
+    LoadConfig();
 }
+
 public void OnMapStart()
 {
-PrecacheSound("player/cough-1.wav", true);
-PrecacheSound("player/cough-2.wav", true);
-PrecacheSound("player/cough-3.wav", true);
-PrecacheSound("player/cough-4.wav", true);
-AddFileToDownloadsTable("sound/player/cough-1.wav");
-AddFileToDownloadsTable("sound/player/cough-2.wav");
-AddFileToDownloadsTable("sound/player/cough-3.wav");
-AddFileToDownloadsTable("sound/player/cough-4.wav");
+    PrecacheSound("player/cough-1.wav", true);
+    PrecacheSound("player/cough-2.wav", true);
+    PrecacheSound("player/cough-3.wav", true);
+    PrecacheSound("player/cough-4.wav", true);
+    AddFileToDownloadsTable("sound/player/cough-1.wav");
+    AddFileToDownloadsTable("sound/player/cough-2.wav");
+    AddFileToDownloadsTable("sound/player/cough-3.wav");
+    AddFileToDownloadsTable("sound/player/cough-4.wav");
 }
+
 public void OnMapEnd()
 {
-    // Полная очистка при смене карты
     CleanupAllSmokes(true);
+}
+
+// ----------------------------
+// Config & Access
+// ----------------------------
+void LoadConfig()
+{
+    g_smPermissions.Clear();
+    char path[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, path, sizeof(path), "configs/SBC_V3.cfg");
+
+    KeyValues kv = new KeyValues("SmokeBombCombo");
+    if (!kv.ImportFromFile(path))
+    {
+        LogError("[SBC] Cannot load configs/SBC_V3.cfg");
+        delete kv;
+        return;
+    }
+
+    if (kv.GotoFirstSubKey())
+    {
+        do
+        {
+            char keyName[64];
+            kv.GetSectionName(keyName, sizeof(keyName));
+
+            char valStr[64];
+            kv.GetString("value", valStr, sizeof(valStr));
+
+            ConVar cv = FindConVar(keyName);
+            if (cv != null)
+            {
+                cv.SetString(valStr);
+            }
+
+            char allowRuler[256];
+            kv.GetString("Allow_ruler", allowRuler, sizeof(allowRuler));
+            g_smPermissions.SetString(keyName, allowRuler);
+
+        } while (kv.GotoNextKey());
+    }
+
+    delete kv;
+    PrintToServer("[SBC] Конфиг и доступы успешно загружены.");
+}
+
+public Action Command_ReloadConfig(int client, int args)
+{
+    LoadConfig();
+    if (client > 0 && IsClientInGame(client))
+    {
+        CPrintToChat(client, "{green}[SBC]{default} Конфиг перезагружен.");
+    }
+    else
+    {
+        PrintToServer("[SBC] Конфиг перезагружен.");
+    }
+    return Plugin_Handled;
+}
+
+bool HasAccessToSetting(int client, const char[] settingName)
+{
+    // Root admins ALWAYS have access
+    if (GetAdminFlag(GetUserAdmin(client), Admin_Root))
+    {
+        return true;
+    }
+
+    char allowRuler[256];
+    if (g_smPermissions.GetString(settingName, allowRuler, sizeof(allowRuler)))
+    {
+        if (allowRuler[0] == '\0')
+        {
+            return false; // Only root allowed if empty
+        }
+
+        char auth[64];
+        GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+
+        char parts[16][64];
+        int count = ExplodeString(allowRuler, " ", parts, sizeof(parts), sizeof(parts[]));
+
+        for (int i = 0; i < count; i++)
+        {
+            if (parts[i][0] == '\0') continue;
+
+            if (StrEqual(parts[i], auth, false))
+                return true;
+
+            AdminId admin = GetUserAdmin(client);
+            if (admin != INVALID_ADMIN_ID)
+            {
+                int groupCount = GetAdminGroupCount(admin);
+                char groupName[64];
+                for (int g = 0; g < groupCount; g++)
+                {
+                    admin.GetGroup(g, groupName, sizeof(groupName));
+                    if (StrEqual(groupName, parts[i], false))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
 }
 
 // ----------------------------
@@ -126,7 +235,6 @@ static void PushSmoke(int ownerUserId, int smokeEnt, int lightEnt)
         SmokeData old;
         g_Smokes.GetArray(0, old, sizeof(old));
         if (old.dmgTimer != null) { KillTimer(old.dmgTimer); }
-        // Свет можно убить мягко
         int l = EntRefToEntIndex(old.lightRef);
         if (l != INVALID_ENT_REFERENCE && IsValidEntity(l)) { AcceptEntityInput(l, "Kill"); }
         g_Smokes.Erase(0);
@@ -148,17 +256,12 @@ static void DeactivateSmokeByIndex(int idx, bool killEntities)
     SmokeData d;
     g_Smokes.GetArray(idx, d, sizeof(d));
 
-    // Stop timers
     if (d.dmgTimer != null) { KillTimer(d.dmgTimer); d.dmgTimer = null; }
-
-    // Mark inactive
     d.active = false;
 
-    // Kill light
     int l = EntRefToEntIndex(d.lightRef);
     if (l != INVALID_ENT_REFERENCE && IsValidEntity(l)) { AcceptEntityInput(l, "Kill"); d.lightRef = INVALID_ENT_REFERENCE; }
 
-    // Optionally kill smoke entity
     if (killEntities)
     {
         int e = EntRefToEntIndex(d.entRef);
@@ -167,7 +270,6 @@ static void DeactivateSmokeByIndex(int idx, bool killEntities)
             AcceptEntityInput(e, "TurnOff");
             AcceptEntityInput(e, "Kill");
         }
-        // Remove from registry
         g_Smokes.Erase(idx);
     }
     else
@@ -191,7 +293,6 @@ public Action Event_SmokeDetonate(Event event, const char[] name, bool dontBroad
     pos[1] = event.GetFloat("y");
     pos[2] = event.GetFloat("z");
 
-    // Create smoke entity and color
     char sColor[32];
     GetSmokeColorForClient(client, sColor, sizeof(sColor));
 
@@ -204,7 +305,6 @@ public Action Event_SmokeDetonate(Event event, const char[] name, bool dontBroad
         DispatchKeyValue(smokeEnt, "rendercolor", sColor);
         DispatchSpawn(smokeEnt);
 
-        // Optional dynamic light
         int lightEnt = CreateEntityByName("light_dynamic");
         if (lightEnt > 0)
         {
@@ -222,11 +322,9 @@ public Action Event_SmokeDetonate(Event event, const char[] name, bool dontBroad
 
         PushSmoke(GetClientUserId(client), smokeEnt, lightEnt);
 
-        // Damage timer only if enabled
         if (g_hDamageEnabled.BoolValue)
         {
             Handle t = CreateTimer(g_hDamageInterval.FloatValue, Timer_ApplySmokeDamage, EntIndexToEntRef(smokeEnt), TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-            // Store timer in last record
             int idx = g_Smokes.Length - 1;
             SmokeData d;
             g_Smokes.GetArray(idx, d, sizeof(d));
@@ -240,7 +338,6 @@ public Action Event_SmokeDetonate(Event event, const char[] name, bool dontBroad
 
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-    // Мягкая очистка: выключить свет, но оставить дым жить по своему TTL
     for (int i = g_Smokes.Length - 1; i >= 0; i--)
     {
         SmokeData d;
@@ -254,7 +351,6 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 
 public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 {
-    // Жёсткая очистка — по требованию: полностью деактивировать и убрать
     CleanupAllSmokes(true);
     return Plugin_Continue;
 }
@@ -265,14 +361,12 @@ public Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 public void OnClientDisconnect(int client)
 {
     int uid = GetClientUserId(client);
-    // Деактивировать все дымовухи этого владельца — плагин больше не трогает их (как просил)
     for (int i = g_Smokes.Length - 1; i >= 0; i--)
     {
         SmokeData d;
         g_Smokes.GetArray(i, d, sizeof(d));
         if (d.ownerUserId == uid)
         {
-            // Полная деактивация (без обязательного Kill самого дыма — можно оставить миру)
             DeactivateSmokeByIndex(i, true);
         }
     }
@@ -283,7 +377,6 @@ public void OnClientDisconnect(int client)
 // ----------------------------
 public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
 {
-    // Найти запись
     int idx = FindSmokeIndexByEntRef(smokeEntRef);
     if (idx == -1)
     {
@@ -293,7 +386,6 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
     SmokeData d;
     g_Smokes.GetArray(idx, d, sizeof(d));
 
-    // TTL
     float now = GetEngineTime();
     if ((now - d.bornTime) >= SMOKE_TTL || !d.active)
     {
@@ -301,7 +393,6 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
         return Plugin_Stop;
     }
 
-    // Дым всё ещё существует?
     int smokeEnt = EntRefToEntIndex(d.entRef);
     if (smokeEnt == INVALID_ENT_REFERENCE || !IsValidEntity(smokeEnt))
     {
@@ -309,14 +400,12 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
         return Plugin_Stop;
     }
 
-    // Если урон отключён — таймер можно мягко остановить
     if (!g_hDamageEnabled.BoolValue)
     {
         DeactivateSmokeByIndex(idx, false);
         return Plugin_Stop;
     }
 
-    // Позиция дыма
     float smokePos[3];
     GetEntPropVector(smokeEnt, Prop_Data, "m_vecOrigin", smokePos);
 
@@ -325,12 +414,10 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
     float damage = g_hDamageAmount.FloatValue;
     int ownerTeam = (owner > 0 && IsClientInGame(owner)) ? GetClientTeam(owner) : 0;
 
-    // Обход всех игроков
     for (int i = 1; i <= MaxClients; i++)
     {
         if (!IsClientInGame(i) || !IsPlayerAlive(i)) { continue; }
 
-        // Если тимдамаг выключен — защищаем своих
         if (!allowTeamDamage && owner > 0 && IsClientInGame(owner) && GetClientTeam(i) == ownerTeam)
         {
             continue;
@@ -343,21 +430,15 @@ public Action Timer_ApplySmokeDamage(Handle timer, any smokeEntRef)
         {
             if (owner > 0 && IsClientInGame(owner))
             {
-                // Тимдамаг включён → атакер=0 (игнорируем mp_friendlyfire)
-                // Тимдамаг выключён → атакер=owner (чтобы засчитался на владельца)
                 SDKHooks_TakeDamage(i, smokeEnt, owner, damage, DMG_POISON);
-                // Выбираем случайный кашель
                 int rnd = GetRandomInt(1, 4);
                 char snd[64];
                 Format(snd, sizeof(snd), "player/cough-%d.wav", rnd);
-                // Проигрываем жертве (он слышит сам)
                 EmitSoundToClient(i, snd, i, SNDCHAN_VOICE, SNDLEVEL_NORMAL);
-                // Проигрываем всем вокруг в стандартном радиусе
                 EmitSoundToAll(snd, i, SNDCHAN_VOICE, SNDLEVEL_NORMAL);
             }
             else
             {
-                // Владелец вышел → деактивируем немедленно «плагин больше не действует»
                 DeactivateSmokeByIndex(idx, true);
                 return Plugin_Stop;
             }
@@ -403,24 +484,41 @@ public Action Command_SBC(int client, int args)
 static void ShowSBCMenu(int client)
 {
     Menu m = CreateMenu(MenuHandler_SBC);
-    m.SetTitle("SmokeBomb Combo — базовое меню");
+    m.SetTitle("SmokeBomb Combo — управление");
     m.ExitButton = true;
 
     char line[64];
+    int itemCount = 0;
 
-    Format(line, sizeof(line), "Плагин: %s", g_hEnabled.BoolValue ? "Включен" : "Выключен");
-    m.AddItem("toggle_plugin", line);
+    if (HasAccessToSetting(client, "sm_sbc_enabled"))
+    {
+        Format(line, sizeof(line), "Плагин: %s", g_hEnabled.BoolValue ? "Включен" : "Выключен");
+        m.AddItem("toggle_plugin", line);
+        itemCount++;
+    }
 
-    Format(line, sizeof(line), "Урон дымом: %s", g_hDamageEnabled.BoolValue ? "Включен" : "Выключен");
-    m.AddItem("toggle_damage", line);
+    if (HasAccessToSetting(client, "sm_sbc_damage_enabled"))
+    {
+        Format(line, sizeof(line), "Урон дымом: %s", g_hDamageEnabled.BoolValue ? "Включен" : "Выключен");
+        m.AddItem("toggle_damage", line);
+        itemCount++;
+    }
 
-    Format(line, sizeof(line), "Урон по своим: %s", g_hAllowTeamDamage.BoolValue ? "Включен" : "Выключен");
-    m.AddItem("toggle_teammate", line);
+    if (HasAccessToSetting(client, "sm_sbc_teammate_damage"))
+    {
+        Format(line, sizeof(line), "Урон по своим: %s", g_hAllowTeamDamage.BoolValue ? "Включен" : "Выключен");
+        m.AddItem("toggle_teammate", line);
+        itemCount++;
+    }
 
-    Format(line, sizeof(line), "Режим цвета: %s", g_hColorMode.IntValue == 0 ? "Командный" : "Override");
-    m.AddItem("toggle_colormode", line);
+    if (HasAccessToSetting(client, "sm_sbc_colormode"))
+    {
+        Format(line, sizeof(line), "Режим цвета: %s", g_hColorMode.IntValue == 0 ? "Командный" : "Override");
+        m.AddItem("toggle_colormode", line);
+        itemCount++;
+    }
 
-    if (g_hColorMode.IntValue == 1)
+    if (g_hColorMode.IntValue == 1 && HasAccessToSetting(client, "sm_sbc_override_color"))
     {
         m.AddItem("color_black",    "Цвет: Чёрный");
         m.AddItem("color_white",    "Цвет: Белый");
@@ -430,6 +528,14 @@ static void ShowSBCMenu(int client)
         m.AddItem("color_brown",    "Цвет: Коричневый");
         m.AddItem("color_purple",   "Цвет: Пурпурный");
         m.AddItem("color_moss",     "Цвет: Мховый (тёмно-зелёный)");
+        itemCount++;
+    }
+
+    if (itemCount == 0)
+    {
+        CPrintToChat(client, "{red}[SBC]{default} У вас нет прав для изменения настроек.");
+        delete m;
+        return;
     }
 
     m.Display(client, MENU_TIME_FOREVER);
@@ -444,38 +550,53 @@ public int MenuHandler_SBC(Menu m, MenuAction action, int client, int item)
 
         if (StrEqual(info, "toggle_plugin"))
         {
-            g_hEnabled.SetBool(!g_hEnabled.BoolValue);
-            NotifyAll("Плагин", g_hEnabled.BoolValue);
+            if (HasAccessToSetting(client, "sm_sbc_enabled"))
+            {
+                g_hEnabled.SetBool(!g_hEnabled.BoolValue);
+                NotifyAll("Плагин", g_hEnabled.BoolValue);
+            }
         }
         else if (StrEqual(info, "toggle_damage"))
         {
-            g_hDamageEnabled.SetBool(!g_hDamageEnabled.BoolValue);
-            NotifyAll("Урон дымом", g_hDamageEnabled.BoolValue);
+            if (HasAccessToSetting(client, "sm_sbc_damage_enabled"))
+            {
+                g_hDamageEnabled.SetBool(!g_hDamageEnabled.BoolValue);
+                NotifyAll("Урон дымом", g_hDamageEnabled.BoolValue);
+            }
         }
         else if (StrEqual(info, "toggle_teammate"))
         {
-            g_hAllowTeamDamage.SetBool(!g_hAllowTeamDamage.BoolValue);
-            NotifyAll("Урон по своим", g_hAllowTeamDamage.BoolValue);
+            if (HasAccessToSetting(client, "sm_sbc_teammate_damage"))
+            {
+                g_hAllowTeamDamage.SetBool(!g_hAllowTeamDamage.BoolValue);
+                NotifyAll("Урон по своим", g_hAllowTeamDamage.BoolValue);
+            }
         }
         else if (StrEqual(info, "toggle_colormode"))
         {
-            g_hColorMode.SetInt(g_hColorMode.IntValue == 0 ? 1 : 0);
-            NotifyAll("Режим цвета", g_hColorMode.IntValue == 1);
+            if (HasAccessToSetting(client, "sm_sbc_colormode"))
+            {
+                g_hColorMode.SetInt(g_hColorMode.IntValue == 0 ? 1 : 0);
+                NotifyAll("Режим цвета", g_hColorMode.IntValue == 1);
+            }
         }
         else if (StrContains(info, "color_") == 0)
         {
-            if (StrEqual(info, "color_black"))  g_hOverrideColor.SetString("0 0 0");
-            else if (StrEqual(info, "color_white"))  g_hOverrideColor.SetString("255 255 255");
-            else if (StrEqual(info, "color_orange")) g_hOverrideColor.SetString("255 140 0");
-            else if (StrEqual(info, "color_red"))    g_hOverrideColor.SetString("255 0 0");
-            else if (StrEqual(info, "color_blue"))   g_hOverrideColor.SetString("0 0 255");
-            else if (StrEqual(info, "color_brown"))  g_hOverrideColor.SetString("150 75 0");
-            else if (StrEqual(info, "color_purple")) g_hOverrideColor.SetString("128 0 128");
-            else if (StrEqual(info, "color_moss"))   g_hOverrideColor.SetString("25 50 25");
+            if (HasAccessToSetting(client, "sm_sbc_override_color"))
+            {
+                if (StrEqual(info, "color_black"))  g_hOverrideColor.SetString("0 0 0");
+                else if (StrEqual(info, "color_white"))  g_hOverrideColor.SetString("255 255 255");
+                else if (StrEqual(info, "color_orange")) g_hOverrideColor.SetString("255 140 0");
+                else if (StrEqual(info, "color_red"))    g_hOverrideColor.SetString("255 0 0");
+                else if (StrEqual(info, "color_blue"))   g_hOverrideColor.SetString("0 0 255");
+                else if (StrEqual(info, "color_brown"))  g_hOverrideColor.SetString("150 75 0");
+                else if (StrEqual(info, "color_purple")) g_hOverrideColor.SetString("128 0 128");
+                else if (StrEqual(info, "color_moss"))   g_hOverrideColor.SetString("25 50 25");
 
-            CPrintToChatAll("{green}[SBC]{default} Override-цвет дыма изменён.");
-            SendHudMessage(client, HUD_CHANNEL, -1.0, 0.20, HUD_COLOR1, HUD_COLOR2, 0, 0.5, 0.5, 2.5, 0.0,
-                "SBC: Цвет изменён");
+                CPrintToChatAll("{green}[SBC]{default} Override-цвет дыма изменён.");
+                SendHudMessage(client, HUD_CHANNEL, -1.0, 0.20, HUD_COLOR1, HUD_COLOR2, 0, 0.5, 0.5, 2.5, 0.0,
+                    "SBC: Цвет изменён");
+            }
         }
 
         ShowSBCMenu(client);
@@ -496,7 +617,6 @@ static void NotifyAll(const char[] what, bool state)
     Format(msg, sizeof(msg), "{green}[SBC]{default} %s: %s", what, state ? "{lime}Включено" : "{red}Выключено");
     CPrintToChatAll(msg);
 
-    // HUD всем живым игрокам
     for (int i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i))

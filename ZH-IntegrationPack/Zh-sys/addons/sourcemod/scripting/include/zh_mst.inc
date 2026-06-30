@@ -1,4 +1,7 @@
-#pragma once
+#if defined _zh_mst_included
+  #endinput
+#endif
+#define _zh_mst_included
 
 /**
  * Ability flags describe what a class can do.

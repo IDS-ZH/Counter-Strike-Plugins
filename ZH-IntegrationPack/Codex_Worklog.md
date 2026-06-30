@@ -1,4 +1,4 @@
-﻿# Codex Worklog (ZH-IntegrationPack)
+# Codex Worklog (ZH-IntegrationPack)
 # Codex Worklog (ZH-IntegrationPack)
 # Purpose: brief, dated notes of edits/analysis done in this pack. Keep concise to avoid bloat. Times are 24-hour, local to host.
 
@@ -37,12 +37,15 @@
 - [05:52] Documented goal for equipment-drop module: allow G to drop any item (even usually undroppable) and drop all carried gear on death, beyond default primary+secondary+one grenade/defuse.
 - [06:05] Compared tripmine sources: noted Legacy/tripmines v.4.0/tripmines.sp (multi-game, needs TF2 cleanup, good base for standalone traps) vs ZR lasermines (lasermines_155, ZombieReloaded/ZR/lasermines*.sp tied to ZR). Added guidance to All_Docs.md.
 - [06:12] Added sapper/demolition ability notes: bind/key for mine placement, optional slot 4 integration, class-only access with larger stacks for sapper, config path configs/ZH-sys/Abilities/sapper_mines.cfg in All_Docs.md.
-- [06:20] Clarified slot vs buy-menu note for mines in All_Docs.md: slot 4 equip (not buy menu), warned about price-display mismatch (esource/ui/*.res/cstrike_*.txt) and referenced custom _buymenu example for full UI edits.
+- [06:20] Clarified slot vs buy-menu note for mines in All_Docs.md: slot 4 equip (not buy menu), warned about price-display mismatch (
+esource/ui/*.res/cstrike_*.txt) and referenced custom _buymenu example for full UI edits.
 - [06:30] Logged large Legacy bundles in All_Docs.md as references for heavy resource/weapon patching (ZombieReloaded packs, CSS Modern War on Terror, Gustav Recoilless Cannon).
 - [06:40] Added MySQL map-familiarity idea to All_Docs.md (per-player map buckets NEW/novice/aware/expert/master/tracker, REST/API for web panel + mapvote personalization with family grouping).
 - [07:48] Created Zh-sys/{resource,scripts} and copied fixed HUD package (ClientScheme/fonts + HudLayout/HudAnimations) for deployment; noted HUD path in All_Docs.md.
-- [08:07] Recorded clarified ZH-sys layout in All_Docs.md: root mirrors cstrike (addons, cfg, resource, scripts, materials/models/sound as added), HUD lives in esource/scripts.
-- [08:25] Audited logic-only ZH plugins (no custom resources): zh_core/zh_modes/zh_mst/zh_rha/zh_c4/zh_bots/zh_hostages/zh_gravity/zh_deathinformer/zh_showdamage/zh_steamid/zh_webbridge/zh_zones/zh_sbc/zh_ammocontrol (dragonbreath uses cvar sound path). No esource/scripts/materials changes needed; depend on configs/ZH-sys/... and standard assets. Next: tune default configs and tie into zh_modes/MST.
+- [08:07] Recorded clarified ZH-sys layout in All_Docs.md: root mirrors cstrike (addons, cfg, resource, scripts, materials/models/sound as added), HUD lives in 
+esource/scripts.
+- [08:25] Audited logic-only ZH plugins (no custom resources): zh_core/zh_modes/zh_mst/zh_rha/zh_c4/zh_bots/zh_hostages/zh_gravity/zh_deathinformer/zh_showdamage/zh_steamid/zh_webbridge/zh_zones/zh_sbc/zh_ammocontrol (dragonbreath uses cvar sound path). No 
+esource/scripts/materials changes needed; depend on configs/ZH-sys/... and standard assets. Next: tune default configs and tie into zh_modes/MST.
 - [08:55] Noted in All_Docs.md: use Standalone SkinChooser 5.5 CS-Source as base, restore arms/thirdperson features from legacy sm_skinchooser 5.3, add !mst menu entry "Виды обзора" (1st/3rd/3rd static 	hirdperson_mayamode) with MST-side config.
 - [21:11] Created skeleton config tree under ddons/sourcemod/configs/ZH-sys/ for logic-only plugins (C4, Bots, Hostages, Gravity, DeathInformer, ShowDamage, SteamID, WebBridge, Zones, SBC, RHA humans/bots) with placeholder cfgs and README for per-map zones.
 
@@ -78,3 +81,25 @@
 
 ## 2025-12-09
 - [05:27] Synced All_Docs.md with new Modifiers/Model_Switch_Tool config paths (hands/downloads/modes), updated VIP cfg location, and logged legacy grenade sources (AntiTeamFlash, COD_life quick grenades, ZR napalm, New_Weapons_NoBot projectiles, ZR grenade limits) for Modifiers/Weapons/Grenades after an rg sweep of Legacy.
+
+## 2025-12-21
+- Audited `ZH-IntegrationPack/Zh-sys` build health: ensured all `zh_*.sp` compile cleanly on SM 1.13 `spcomp`.
+- Fixed compile blockers across ZH modules (include-guards, SourcePawn syntax, KeyValues API usage, enum typing) and added missing vendor includes (`multicolors`, `easy_hudmessage`, `system2`, `json`) under `Zh-sys/addons/sourcemod/scripting/include/`.
+- Updated docs to match the canonical deploy-tree and config roots (`Zh-sys` + `configs/ZH-sys/{Core,GUI,Modifiers,Tools}`); corrected a few stale `configs/ZH/...` references.
+
+## 2025-12-24
+- Copied `Default_game_dir/cstrike/cfg/config.cfg` into `Zh-sys/cfg/config.cfg` and added `MOUSE3` bind for ammo-type cycling.
+- Added HUD/ammo icon research notes and canonical paths to All_Docs.md (mod_textures/clientscheme/640hud1/csd.ttf).
+- Confirmed ammo icon sources: `mod_textures.txt` (`ammo_*`), `CSTypeDeath`->`csd.ttf`, and `materials/sprites/640hud1`.
+- Expanded All_Docs.md to document the exact chain `weapon_*.txt` -> `TextureData` -> `mod_textures.txt` and the split between sprite-based vs glyph-based ammo icons.
+- Audited non-`zh_*` SourceMod plugin sources under `Zh-sys/addons/sourcemod/scripting` for backdoor patterns; only expected admin/menu command execution (`sm_rcon`, `exec`, dynamic menu commands) and normal file I/O (mapchooser/admin files) found, no network/download code in sources.
+- Disabled `sm_rcon` registration in `basecommands.sp` and added mapcycle path fallback logic to `nextmap.sp` + `mapchooser.sp` (cfg/mapcycle.txt -> ZH-sys Tools/MapCycle).
+- Updated All_Docs.md with ZH-sys mapcycle priority + DB-backed rotation directive.
+- Created `configs/ZH-sys/Tools/MapCycle/` and seeded `zh_mapcycle.cfg` + `adminmenu_maplist.cfg` from default mapcycle; updated maplists.cfg and basecommands map list path to ZH-sys.
+- [23:29] Normalized HUD/mapcycle doc punctuation to ASCII and added prefix-based mapcycle pooling directive to All_Docs.md.
+- [23:38] Added mapcycle fallback checks to `nominations.sp` and `randomcycle.sp`, and aligned `nextmap.sp`/`mapchooser.sp` to prefer `cfg/mapcycle.txt` when default or missing while honoring explicit custom paths.
+- [23:49] Added `zh_mapcycle_pools.cfg` + `zh_mapcycle_pool` support in `nextmap.sp`, `mapchooser.sp`, `nominations.sp`, `randomcycle.sp` to select mapcycle pools; documented the pool config path in All_Docs.md.
+- [01:07] Generated mapcycle pool files from `CUSTOM/Custom_Maps/maps` (prefix groups >=3; others to misc), and rewrote `zh_mapcycle_pools.cfg` to include aim/as/awp/cs/de/dm/fy/gg + misc.
+- [01:10] Merged `Default_game_dir/cstrike/cfg/mapcycle.txt` into pool lists; regenerated mapcycle_*.cfg (cs/de counts grew) and refreshed `zh_mapcycle_pools.cfg`.
+- [20:16] Restored missing block separator for Legacy classifier in All_Docs.md (split inline separator into its own line).
+- [21:07] Prefixed numbered level-2 headings in All_Docs.md with block names and renumbered within each block to eliminate duplicate section numbers.

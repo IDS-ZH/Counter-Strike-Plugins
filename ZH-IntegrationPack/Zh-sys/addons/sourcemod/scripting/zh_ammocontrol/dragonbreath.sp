@@ -79,7 +79,7 @@ public void DragonBreathFire(Event event, const char[] name, bool dontBroadcast)
         return;
 
     int client = GetClientOfUserId(GetEventInt(event, "userid"));
-    if(!IsValidClient(client))
+    if(!ZH_IsValidClient(client))
         return;
 
     char weapon[32], gunsString[255];
@@ -174,7 +174,7 @@ public void DragonBreath_OnBulletImpact(Event event, const char[] name, bool don
         return;
 
     int client = GetClientOfUserId(GetEventInt(event, "userid"));
-    if(!IsValidClient(client))
+    if(!ZH_IsValidClient(client))
         return;
 
     char weapon[32], gunsString[255];
@@ -287,7 +287,7 @@ public Action DragonBreath_OnTakeDamage(int victim, int &attacker, int &inflicto
         return Plugin_Continue;
 
     int client = GetEntPropEnt(inflictor, Prop_Send, "m_hOwnerEntity");
-    if(!IsValidClient(client))
+    if(!ZH_IsValidClient(client))
         return Plugin_Continue;
 
     // Ignite the victim

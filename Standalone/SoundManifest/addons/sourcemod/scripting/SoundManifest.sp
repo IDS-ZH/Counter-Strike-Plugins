@@ -296,7 +296,8 @@ void ParseEventSounds(KeyValues kv, SoundEventType eventType, const char[] event
     int processedSounds = 0;
     for (int i = 1; i <= soundCount && processedSounds < MAX_SOUNDS_PER_EVENT; i++) {
         Format(tempStr, sizeof(tempStr), "sound_%d", i);
-        if (kv.GetString(tempStr, g_sSoundsPaths[eventType][processedSounds], sizeof(g_sSoundsPaths[eventType][processedSounds]))) {
+        kv.GetString(tempStr, g_sSoundsPaths[eventType][processedSounds], sizeof(g_sSoundsPaths[eventType][processedSounds]), "");
+        if (g_sSoundsPaths[eventType][processedSounds][0] != '\0') {
             // Validate and precache the sound
             float maxSize = g_hMaxFileSize.FloatValue;
             if (PrecacheAndValidateSound(g_sSoundsPaths[eventType][processedSounds], maxSize)) {
@@ -317,7 +318,8 @@ void ParseEventSounds(KeyValues kv, SoundEventType eventType, const char[] event
         int ctProcessed = 0;
         for (int i = 1; i <= soundCount && ctProcessed < MAX_SOUNDS_PER_EVENT; i++) {
             Format(tempStr, sizeof(tempStr), "sound_%d", i);
-            if (kv.GetString(tempStr, g_sCTSndPaths[eventType][ctProcessed], sizeof(g_sCTSndPaths[eventType][ctProcessed]))) {
+            kv.GetString(tempStr, g_sCTSndPaths[eventType][ctProcessed], sizeof(g_sCTSndPaths[eventType][ctProcessed]), "");
+            if (g_sCTSndPaths[eventType][ctProcessed][0] != '\0') {
                 float maxSize = g_hMaxFileSize.FloatValue;
                 if (PrecacheAndValidateSound(g_sCTSndPaths[eventType][ctProcessed], maxSize)) {
                     Format(tempStr, sizeof(tempStr), "duration_%d", i);
@@ -338,7 +340,8 @@ void ParseEventSounds(KeyValues kv, SoundEventType eventType, const char[] event
         int tProcessed = 0;
         for (int i = 1; i <= soundCount && tProcessed < MAX_SOUNDS_PER_EVENT; i++) {
             Format(tempStr, sizeof(tempStr), "sound_%d", i);
-            if (kv.GetString(tempStr, g_sTSndPaths[eventType][tProcessed], sizeof(g_sTSndPaths[eventType][tProcessed]))) {
+            kv.GetString(tempStr, g_sTSndPaths[eventType][tProcessed], sizeof(g_sTSndPaths[eventType][tProcessed]), "");
+            if (g_sTSndPaths[eventType][tProcessed][0] != '\0') {
                 float maxSize = g_hMaxFileSize.FloatValue;
                 if (PrecacheAndValidateSound(g_sTSndPaths[eventType][tProcessed], maxSize)) {
                     Format(tempStr, sizeof(tempStr), "duration_%d", i);

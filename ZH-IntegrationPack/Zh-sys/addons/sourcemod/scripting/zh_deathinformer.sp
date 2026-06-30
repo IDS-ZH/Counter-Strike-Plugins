@@ -206,7 +206,7 @@ public void OnPlayerDeath(Event event, const char[] name, bool silent)
     int iVictim = GetClientOfUserId(event.GetInt("userid"));
     int iAttacker = GetClientOfUserId(event.GetInt("attacker"));
 
-    if (iVictim <= 0) return;
+    if (!ZH_IsValidClient(iVictim)) return;
 
     if (iAttacker == 0 || iAttacker == iVictim)
     {
@@ -214,7 +214,7 @@ public void OnPlayerDeath(Event event, const char[] name, bool silent)
         return;
     }
 
-    if (iAttacker <= 0 || !IsClientInGame(iAttacker)) return;
+    if (!ZH_IsValidClient(iAttacker)) return;
 
     char sAttackerName[MAX_NAME_LENGTH];
     GetClientName(iAttacker, sAttackerName, sizeof(sAttackerName));

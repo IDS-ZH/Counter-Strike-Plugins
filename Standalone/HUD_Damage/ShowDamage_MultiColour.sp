@@ -1,3 +1,6 @@
+#pragma semicolon 1
+#pragma newdecls required
+
 #include <sourcemod>
 #include <cstrike>
 #include <sdktools>
@@ -6,24 +9,28 @@
 
 #define PROJECT_FULLNAME	"ShowDamage_MultiColour"
 
-Handle g_hCookie;
+Cookie g_hCookie;
 char StyleShowDamage[MAXPLAYERS + 1][64];
 
-public Plugin myinfo = { name = PROJECT_FULLNAME, author = "Ravskiy1 & Gemini", version = "0.2", };
+public Plugin myinfo = {
+    name = PROJECT_FULLNAME,
+    author = "Ravskiy1 & Gemini",
+    version = "0.2",
+};
 
 public void OnPluginStart()
 {
-	g_hCookie = RegClientCookie("SSD", "Style ShowDamage", CookieAccess_Private);
+	g_hCookie = new Cookie("SSD", "Style ShowDamage", CookieAccess_Private);
 	
 	RegConsoleCmd("sm_sd", ShowDamageMenu);
 	RegConsoleCmd("sm_showdamage", ShowDamageMenu);
 	RegConsoleCmd("sm_ыв", ShowDamageMenu);
 	RegConsoleCmd("sm_ырщцвфьфпу", ShowDamageMenu);
 	
-	for (int i; ++i <= MaxClients;)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i) || IsFakeClient(i) || !AreClientCookiesCached(i))
-		continue;
+		    continue;
 
 		OnClientCookiesCached(i);
 	}
@@ -31,7 +38,7 @@ public void OnPluginStart()
 	HookEvent("player_hurt", OnPlayerHurt, EventHookMode_Post);
 }
 
-public Action ShowDamageMenu(iClient, args)
+public Action ShowDamageMenu(int iClient, int args)
 {
 	if (iClient > 0 && args < 1) StyleShowDamageMenu(iClient);
 	return Plugin_Handled;
@@ -40,7 +47,7 @@ public Action ShowDamageMenu(iClient, args)
 public void OnClientCookiesCached(int iClient)
 {
 	char szValue[64];
-	GetClientCookie(iClient, g_hCookie, szValue, sizeof(szValue));
+	g_hCookie.Get(iClient, szValue, sizeof(szValue));
 	if(szValue[0])
 	{
 		strcopy(StyleShowDamage[iClient], sizeof(StyleShowDamage[]), szValue);
@@ -52,21 +59,21 @@ public void OnClientCookiesCached(int iClient)
 }
 
 public void OnClientDisconnect(int iClient) {
-	SetClientCookie(iClient, g_hCookie, StyleShowDamage[iClient]);
+	g_hCookie.Set(iClient, StyleShowDamage[iClient]);
 	StyleShowDamage[iClient][0] = 0;
 }
 
-public OnPlayerHurt(Event hEvent, const char[] sEvName, bool dDontBroadcast)
+public Action OnPlayerHurt(Event hEvent, const char[] sEvName, bool dDontBroadcast)
 {
 	int iAttacker = GetClientOfUserId(hEvent.GetInt("attacker"));
 	int iVictim = GetClientOfUserId(hEvent.GetInt("userid"));
 	int iDamage = hEvent.GetInt("dmg_health");
 	int iHealth = GetClientHealth(iVictim);
-	int iArmor = GetClientArmor(iVictim); // Получаем броню жертвы
+	int iArmor = GetClientArmor(iVictim);
 	char cHealth[32];
-	char cArmor[32]; // Буфер для брони
+	char cArmor[32];
 	
-	if (0 < iAttacker <= MaxClients && !IsFakeClient(iAttacker))
+	if (0 < iAttacker && iAttacker <= MaxClients && !IsFakeClient(iAttacker))
 	{
 		int iVictimTeam = GetClientTeam(iVictim);
 		int hudColor;
@@ -105,15 +112,17 @@ public OnPlayerHurt(Event hEvent, const char[] sEvName, bool dDontBroadcast)
 			PrintCenterText(iAttacker, "\nУрон -%i | %sЖ | %sБ", iDamage, cHealth, cArmor);
 		}
 	}
+	return Plugin_Continue;
 } 
-public StyleShowDamageMenu(iClient)
+
+void StyleShowDamageMenu(int iClient)
 {
 	Menu hStyleShowDamageMenu = new Menu(MenuHandler_hStyleShowDamageMenu);
 	
-hStyleShowDamageMenu.ExitBackButton = false;
+	hStyleShowDamageMenu.ExitBackButton = false;
 	hStyleShowDamageMenu.ExitButton = true;
 	
-hStyleShowDamageMenu.SetTitle("✖ Style Show Damage ✖\n ");
+	hStyleShowDamageMenu.SetTitle("✖ Style Show Damage ✖\n ");
 	
 	if (StrEqual(StyleShowDamage[iClient], "NewStyle", false)) hStyleShowDamageMenu.AddItem("", "Новый [✓]", ITEMDRAW_DISABLED);
 	else hStyleShowDamageMenu.AddItem("", "Новый [✕]", ITEMDRAW_DEFAULT);
@@ -125,7 +134,7 @@ hStyleShowDamageMenu.SetTitle("✖ Style Show Damage ✖\n ");
 	else hStyleShowDamageMenu.AddItem("", "Отключить [✕]", ITEMDRAW_DEFAULT);
 	
 	
-hStyleShowDamageMenu.Display(iClient, 30);
+	hStyleShowDamageMenu.Display(iClient, 30);
 }
 
 public int MenuHandler_hStyleShowDamageMenu(Menu hStyleShowDamageMenu, MenuAction action, int iClient, int iItem)
@@ -136,13 +145,13 @@ public int MenuHandler_hStyleShowDamageMenu(Menu hStyleShowDamageMenu, MenuActio
 		case MenuAction_Select:
 		{	
 			switch(iItem)
-	        	{
-	           		 case 0: { SetClientCookie(iClient, g_hCookie, "NewStyle"); SendHudMessage(iClient, 3, -1.0, -0.6, 0x007FFFFF, 0x333333FF, 0, 0.3, 1.0, 1.0, 2.0, "%N\nУрон -%i | Осталось - %i/ХП", iClient, GetRandomInt(1, 100), GetRandomInt(1, 100)); }
-	           		 case 1: { SetClientCookie(iClient, g_hCookie, "OldStyle"); PrintCenterText(iClient, "Урон -%i | Осталось - %i/ХП", GetRandomInt(1, 100), GetRandomInt(1, 100)); }
-	           		 case 2: SetClientCookie(iClient, g_hCookie, "OffStyle"); 
-	           	}
-	           	OnClientCookiesCached(iClient);
-	           	StyleShowDamageMenu(iClient);
+	        {
+	            case 0: { g_hCookie.Set(iClient, "NewStyle"); SendHudMessage(iClient, 3, -1.0, -0.6, 0x007FFFFF, 0x333333FF, 0, 0.3, 1.0, 1.0, 2.0, "%N\nУрон -%i | Осталось - %i/ХП", iClient, GetRandomInt(1, 100), GetRandomInt(1, 100)); }
+	            case 1: { g_hCookie.Set(iClient, "OldStyle"); PrintCenterText(iClient, "Урон -%i | Осталось - %i/ХП", GetRandomInt(1, 100), GetRandomInt(1, 100)); }
+	            case 2: { g_hCookie.Set(iClient, "OffStyle"); }
+	        }
+	        OnClientCookiesCached(iClient);
+	        StyleShowDamageMenu(iClient);
 		}
 	}
     return 0;

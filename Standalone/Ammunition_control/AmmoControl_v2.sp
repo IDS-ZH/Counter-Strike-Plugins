@@ -242,7 +242,7 @@ public Action Timer_Reload(Handle timer, DataPack pack)
 {
     pack.Reset();
     int client = GetClientFromSerial(pack.ReadCell());
-    int weapon = pack.ReadCell();
+    pack.ReadCell(); // weapon (unused)
     bool isM3 = pack.ReadCell() == 1;
     delete pack;
 
@@ -291,7 +291,7 @@ public Action Timer_Reload2(Handle timer, DataPack pack)
 {
     pack.Reset();
     int client = GetClientFromSerial(pack.ReadCell());
-    int weapon = pack.ReadCell();
+    pack.ReadCell(); // weapon (unused)
     bool isM3 = pack.ReadCell() == 1;
     delete pack;
 
@@ -342,7 +342,7 @@ public Action Timer_BlockShoot(Handle timer, DataPack pack)
 {
     pack.Reset();
     int client = GetClientFromSerial(pack.ReadCell());
-    int weapon = pack.ReadCell();
+    pack.ReadCell(); // weapon (unused)
     delete pack;
 
     if(client <= 0 || client > MaxClients || !IsPlayerAlive(client)) return Plugin_Stop;

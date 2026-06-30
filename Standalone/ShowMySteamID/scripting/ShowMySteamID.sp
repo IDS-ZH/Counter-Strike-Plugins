@@ -28,8 +28,7 @@ public Action Command_MySteamID(int client, int args)
     }
 
     char steamid[64];
-    GetClientAuthString(client, steamid, sizeof(steamid)); // Using GetClientAuthString to match example
-
+    GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
     PrintToChat(client, "\x04[SM] \x01Привет \x03%N \x01, твой SteamID - \x03%s", client, steamid);
 
     return Plugin_Handled;

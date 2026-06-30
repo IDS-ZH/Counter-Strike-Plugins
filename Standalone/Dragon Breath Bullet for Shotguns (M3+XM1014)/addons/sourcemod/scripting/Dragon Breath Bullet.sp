@@ -1,4 +1,5 @@
 #pragma semicolon 1
+#pragma newdecls required
 
 #include <sourcemod>
 #include <sdktools>
@@ -9,17 +10,16 @@
 
 #define EXPLODE_SOUND   "plugins/weapons_SFX/Flame/a-sudden-burst-of-fire.wav"
 
-new Handle:cvarEnable;
-new Handle:cvarGuns;
-new Handle:cvarIgniteTime = INVALID_HANDLE;
-new Handle:cvarDamage = INVALID_HANDLE;
-new Handle:cvarIsPlayerSound = INVALID_HANDLE;
+ConVar cvarEnable;
+ConVar cvarGuns;
+ConVar cvarIgniteTime;
+ConVar cvarDamage;
+ConVar cvarIsPlayerSound;
 
 int BlockTime4[MAXPLAYERS+1] = {0};
 
-
 // Functions
-public Plugin:myinfo =
+public Plugin myinfo =
 {
     name = "Dragon Breath Bullet",
     author = "bl4nk,cjsrk, ZloyHohol",
@@ -29,7 +29,7 @@ public Plugin:myinfo =
 }
 
 
-public OnPluginStart()
+public void OnPluginStart()
 {
     CreateConVar("sm_dragonguns_version", PLUGIN_VERSION, "Dragon Breath Version", FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
     cvarEnable = CreateConVar("sm_dragonguns_enable", "1", "Enable/Disable the plugin", FCVAR_PLUGIN, true, 0.0, true, 1.0);
@@ -44,37 +44,36 @@ public OnPluginStart()
 }
 
 
-public OnMapStart(){
+public void OnMapStart()
+{
     PrecacheSound(EXPLODE_SOUND, true);
     PrecacheSound("player/damage1.wav");
     PrecacheSound("player/damage2.wav");
     PrecacheSound("player/damage3.wav");
     AddFileToDownloadsTable("sound/plugins/weapons_SFX/Flame/a-sudden-burst-of-fire.wav");
-
 }
 
 
-public OnClientPutInServer(client)
+public void OnClientPutInServer(int client)
 {
     SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage2);  
 }
 
 
-public DragonBreathFire(Handle:event,const String:name[],bool:dontBroadcast)
+public Action DragonBreathFire(Event event, const char[] name, bool dontBroadcast)
 {
-    if(!GetConVarInt(cvarEnable))
-        return;
+    if(!cvarEnable.BoolValue)
+        return Plugin_Continue;
     
-    int client = GetClientOfUserId(GetEventInt(event, "userid"));
-    // if(!IsValidClient(client) || IsFakeClient(client))
+    int client = GetClientOfUserId(event.GetInt("userid"));
     if(!IsValidClient(client))
-        return;
+        return Plugin_Continue;
     
     char weapon[32], gunsString[255];
     GetClientWeapon(client, weapon, sizeof(weapon));
     ReplaceString(weapon, sizeof(weapon), "weapon_", "");
 
-    GetConVarString(cvarGuns, gunsString, sizeof(gunsString));
+    cvarGuns.GetString(gunsString, sizeof(gunsString));
     int startidx = 0;
     if (gunsString[0] == '"')
     {
@@ -117,26 +116,26 @@ public DragonBreathFire(Handle:event,const String:name[],bool:dontBroadcast)
             CreateTimer(2.5, DeleteParticle, particle);
         }
     }
+    return Plugin_Continue;
 }
 
 
-public Action:DeleteParticle(Handle:timer, any:particle)
+public Action DeleteParticle(Handle timer, any particle)
 {
     if (IsValidEntity(particle))
     {
-        new String:classN[64];
+        char classN[64];
         GetEdictClassname(particle, classN, sizeof(classN));
         if (StrEqual(classN, "info_particle_system", false))
         {
             AcceptEntityInput(particle, "Kill");
-
         }
     }
+    return Plugin_Stop;
 }
 
 
-// 求距坐标的正右方指定距离的坐标
-stock MoveRigh(const float vPos[3], const float vAng[3], float vReturn[3], float fDistance)
+stock void MoveRigh(const float vPos[3], const float vAng[3], float vReturn[3], float fDistance)
 {
     float vDir[3];
     GetAngleVectors(vAng, NULL_VECTOR, vDir, NULL_VECTOR);
@@ -148,8 +147,7 @@ stock MoveRigh(const float vPos[3], const float vAng[3], float vReturn[3], float
 } 
 
 
-// 求距坐标的正前方指定距离的坐标
-stock MoveForward(const float vPos[3], const float vAng[3], float vReturn[3], float fDistance)
+stock void MoveForward(const float vPos[3], const float vAng[3], float vReturn[3], float fDistance)
 {
     float vDir[3];
     GetAngleVectors(vAng, vDir, NULL_VECTOR, NULL_VECTOR);
@@ -161,21 +159,20 @@ stock MoveForward(const float vPos[3], const float vAng[3], float vReturn[3], fl
 } 
 
 
-public Action:event_BulletImpact(Handle:event, const String:name[], bool:dontBroadcast)
+public Action event_BulletImpact(Event event, const char[] name, bool dontBroadcast)
 {
-    if(!GetConVarInt(cvarEnable))
-        return;
+    if(!cvarEnable.BoolValue)
+        return Plugin_Continue;
     
-    int client = GetClientOfUserId(GetEventInt(event, "userid"));
-    // if(!IsValidClient(client) || IsFakeClient(client))
+    int client = GetClientOfUserId(event.GetInt("userid"));
     if(!IsValidClient(client))
-        return;
+        return Plugin_Continue;
     
     char weapon[32], gunsString[255];
     GetClientWeapon(client, weapon, sizeof(weapon));
     ReplaceString(weapon, sizeof(weapon), "weapon_", "");
 
-    GetConVarString(cvarGuns, gunsString, sizeof(gunsString));
+    cvarGuns.GetString(gunsString, sizeof(gunsString));
     int startidx = 0;
     if (gunsString[0] == '"')
     {
@@ -190,26 +187,22 @@ public Action:event_BulletImpact(Handle:event, const String:name[], bool:dontBro
 
     if (StrContains(gunsString[startidx], weapon, false) != -1)
     {
-        // int currentWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
         if(BlockTime4[client] == 0)
         {
             float origin[3];
-            origin[0] = GetEventFloat(event, "x");
-            origin[1] = GetEventFloat(event, "y");
-            origin[2] = GetEventFloat(event, "z");
+            origin[0] = event.GetFloat("x");
+            origin[1] = event.GetFloat("y");
+            origin[2] = event.GetFloat("z");
             
-            // PrintToChatAll("z坐标：%f", origin[2]);
-
             int fire = CreateEntityByName("env_fire");
             
             SetEntPropEnt(fire, Prop_Send, "m_hOwnerEntity", client);
             DispatchKeyValue(fire, "firesize", "50");
-            //DispatchKeyValue(fire, "fireattack", "5");
             DispatchKeyValue(fire, "health", "1");
             DispatchKeyValue(fire, "firetype", "Normal");
 
-            DispatchKeyValueFloat(fire, "damagescale", GetConVarFloat(cvarDamage));
-            DispatchKeyValue(fire, "spawnflags", "256");  //Used to controll flags
+            DispatchKeyValueFloat(fire, "damagescale", cvarDamage.FloatValue);
+            DispatchKeyValue(fire, "spawnflags", "256");
             SetVariantString("WaterSurfaceExplosion");
             AcceptEntityInput(fire, "DispatchEffect"); 
             DispatchSpawn(fire);
@@ -217,41 +210,41 @@ public Action:event_BulletImpact(Handle:event, const String:name[], bool:dontBro
             AcceptEntityInput(fire, "StartFire");
             TE_SetupSparks(origin, NULL_VECTOR, 5, 2);
             TE_SendToAll();
-            EmitAmbientSound( EXPLODE_SOUND, origin, fire, SNDLEVEL_NORMAL, _ , 1.0 );
+            EmitAmbientSound(EXPLODE_SOUND, origin, fire, SNDLEVEL_NORMAL, _, 1.0);
             
             BlockTime4[client] = 1;
             CreateTimer(0.1, Timer_RestrictTime4, client);
+            
             DataPack pack = new DataPack();
-            // pack.WriteCell(currentWeapon);
             pack.WriteCell(fire);
             pack.WriteFloat(origin[0]);
             pack.WriteFloat(origin[1]);
             pack.WriteFloat(origin[2]);
-            // CreateTimer(1.0, Timer_RestrictTime5, pack, TIMER_REPEAT);
             CreateTimer(0.5, Timer_RestrictTime5, pack, TIMER_REPEAT);
         }
         else if(BlockTime4[client] == 1)
         {
             float origin[3];
-            origin[0] = GetEventFloat(event, "x");
-            origin[1] = GetEventFloat(event, "y");
-            origin[2] = GetEventFloat(event, "z");
+            origin[0] = event.GetFloat("x");
+            origin[1] = event.GetFloat("y");
+            origin[2] = event.GetFloat("z");
             TE_SetupSparks(origin, NULL_VECTOR, 5, 2);
             TE_SendToAll();
         }
     }
+    return Plugin_Continue;
 }
 
-public Action:Timer_RestrictTime4(Handle timer, int client)
+public Action Timer_RestrictTime4(Handle timer, int client)
 {
     BlockTime4[client] = 0;
+    return Plugin_Stop;
 }
 
 
-public Action:Timer_RestrictTime5(Handle timer, DataPack pack)
+public Action Timer_RestrictTime5(Handle timer, DataPack pack)
 {
     pack.Reset(); 
-    // int weapon = pack.ReadCell();
     int fire = pack.ReadCell();
     float pos0 = pack.ReadFloat();
     float pos1 = pack.ReadFloat();
@@ -260,7 +253,7 @@ public Action:Timer_RestrictTime5(Handle timer, DataPack pack)
     static int numPrinted2 = 0;
     if (numPrinted2 >= 1)
     {
-        CloseHandle(pack);
+        delete pack;
         numPrinted2 = 0;
         return Plugin_Stop;
     }
@@ -268,47 +261,49 @@ public Action:Timer_RestrictTime5(Handle timer, DataPack pack)
     origin[0] = pos0;
     origin[1] = pos1;
     origin[2] = pos2;
-    EmitAmbientSound( EXPLODE_SOUND, origin, fire, SNDLEVEL_NORMAL, _ , 1.0 );
+    EmitAmbientSound(EXPLODE_SOUND, origin, fire, SNDLEVEL_NORMAL, _, 1.0);
     numPrinted2++;
+    
+    return Plugin_Continue;
 }
 
 
-public Action:OnTakeDamage2(victim, &attacker, &inflictor, &Float:damage, &damagetype)
+public Action OnTakeDamage2(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-    char arma[64];
-    GetEdictClassname(inflictor, arma, sizeof(arma));
-    //PrintToChatAll("%s",arma);
-    if (!strcmp(arma, "env_fire", false))
+    if (inflictor > 0 && IsValidEdict(inflictor))
     {
-        int client = GetEntPropEnt(inflictor, Prop_Send, "m_hOwnerEntity");
-        // if(!IsValidClient(client) || IsFakeClient(client))
-        if(!IsValidClient(client))
-            return Plugin_Continue;
-        
-        // PrintToChatAll("提示：燃烧弹伤害！");
-        int IsBurn = GetRandomInt(1,3);
-        if(IsBurn == 1)
-            IgniteEntity(victim, GetConVarFloat(cvarIgniteTime));
-        
-        if(GetConVarInt(cvarIsPlayerSound))
+        char arma[64];
+        GetEdictClassname(inflictor, arma, sizeof(arma));
+        if (!strcmp(arma, "env_fire", false))
         {
-            int IsPlaySound = GetRandomInt(1,3);
-            if(IsPlaySound > 1)
+            int client = GetEntPropEnt(inflictor, Prop_Send, "m_hOwnerEntity");
+            if(!IsValidClient(client))
+                return Plugin_Continue;
+            
+            int IsBurn = GetRandomInt(1,3);
+            if(IsBurn == 1)
+                IgniteEntity(victim, cvarIgniteTime.FloatValue);
+            
+            if(cvarIsPlayerSound.BoolValue)
             {
-                switch(GetRandomInt(1,3))
+                int IsPlaySound = GetRandomInt(1,3);
+                if(IsPlaySound > 1)
                 {
-                    case 1: EmitSoundToAll("player/damage1.wav", client, SNDCHAN_VOICE, _, _, 1.0);
-                    case 2: EmitSoundToAll("player/damage2.wav", client, SNDCHAN_VOICE, _, _, 1.0);
-                    case 3: EmitSoundToAll("player/damage3.wav", client, SNDCHAN_VOICE, _, _, 1.0);
+                    switch(GetRandomInt(1,3))
+                    {
+                        case 1: EmitSoundToAll("player/damage1.wav", client, SNDCHAN_VOICE, _, _, 1.0);
+                        case 2: EmitSoundToAll("player/damage2.wav", client, SNDCHAN_VOICE, _, _, 1.0);
+                        case 3: EmitSoundToAll("player/damage3.wav", client, SNDCHAN_VOICE, _, _, 1.0);
+                    }
                 }
-            }
-        }       
+            }       
+        }
     }
     return Plugin_Continue;
 }
 
 
-public void RoundStart_Burn(Handle hEvent, char[] chEvent, bool bDontBroadcast)
+public void RoundStart_Burn(Event event, const char[] name, bool dontBroadcast)
 {
     for(int i = 0; i <= MAXPLAYERS; i++)
     {
@@ -317,10 +312,9 @@ public void RoundStart_Burn(Handle hEvent, char[] chEvent, bool bDontBroadcast)
 }
 
 
-//检测玩家属性函数
-public IsValidClient( client ) 
+public bool IsValidClient(int client) 
 { 
-    if ( !( 1 <= client <= MaxClients ) || !IsClientInGame(client) ) 
+    if ( !( 1 <= client && client <= MaxClients ) || !IsClientInGame(client) ) 
         return false; 
      
     return true; 

@@ -73,10 +73,7 @@ public void OnPluginStart()
     g_hEnableDetailedInfo = CreateConVar("sm_deathinformer_detail_info", "1", "Enable detailed information about hit locations and damage types (0 = off, 1 = on)", FCVAR_NONE, true, 0.0, true, 1.0);
     g_hEnableShotgunAggregation = CreateConVar("sm_deathinformer_shotgun_agg", "1", "Enable aggregation of shotgun pellet damage from a single shot (0 = off, 1 = on)", FCVAR_NONE, true, 0.0, true, 1.0);
 
-    if (!LoadTranslations("deathinformer.phrases.txt"))
-    {
-        LogError("Could not load translation file 'deathinformer.phrases.txt'. This plugin will not work correctly without it.");
-    }
+    LoadTranslations("deathinformer.phrases.txt");
 
     HookEvent("player_hurt", OnPlayerHurt, EventHookMode_Post);
     HookEvent("player_death", OnPlayerDeath, EventHookMode_Post);

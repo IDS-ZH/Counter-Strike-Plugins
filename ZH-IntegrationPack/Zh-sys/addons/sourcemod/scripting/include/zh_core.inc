@@ -1,4 +1,8 @@
-#pragma once
+#if defined _zh_core_included
+  #endinput
+#endif
+#define _zh_core_included
+
 #include <sourcemod>
 
 /**
@@ -58,3 +62,13 @@ native void ZH_GetTranslationsToken(char[] buffer, int maxlen);
  * Registers a module name so diagnostics can report loaded pieces.
  */
 native void ZH_RegisterModule(const char[] moduleName);
+
+/**
+ * Checks if a client index is valid, connected, and optionally alive/bot-safe.
+ * 
+ * @param client        Client index.
+ * @param checkAlive    If true, checks IsPlayerAlive().
+ * @param checkBot      If true, checks IsFakeClient().
+ * @return              True if valid.
+ */
+native bool ZH_IsValidClient(int client, bool checkAlive = false, bool checkBot = false);

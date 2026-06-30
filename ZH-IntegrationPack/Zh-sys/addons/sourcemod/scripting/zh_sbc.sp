@@ -196,6 +196,10 @@ public Action Timer_ApplySmokeDamage(Handle timer, DataPack pack)
 
     if (smokeEnt == INVALID_ENT_REFERENCE || !IsValidEntity(smokeEnt))
     {
+        if (lightEnt != INVALID_ENT_REFERENCE && IsValidEntity(lightEnt))
+        {
+            AcceptEntityInput(lightEnt, "Kill");
+        }
         return Plugin_Stop;
     }
 
@@ -241,7 +245,7 @@ public Action Timer_ApplySmokeDamage(Handle timer, DataPack pack)
                         GetClientAbsOrigin(j, otherPos);
                         if (GetVectorDistance(playerPos, otherPos) < 500.0)
                         {
-                            EmitSoundToClient(j, coughSound, _, _, _, _, i);
+                            EmitSoundToClient(j, coughSound);
                         }
                     }
                 }

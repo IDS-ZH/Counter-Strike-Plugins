@@ -9,6 +9,7 @@
 #include <zh_core>
 
 #define PROJECT_FULLNAME "ZH-sys ShowDamage_MultiColour"
+#define PLUGIN_VERSION "0.3.0-zh-sys"
 
 ConVar g_CvarEnabled;
 Handle g_hCookie;
@@ -17,7 +18,7 @@ char StyleShowDamage[MAXPLAYERS + 1][64];
 public Plugin myinfo = {
     name = PROJECT_FULLNAME,
     author = "Ravskiy1 & Gemini",
-    version = "0.3.0-zh-sys",
+    version = PLUGIN_VERSION,
     url = "https://github.com/ZloyHohol/Counter-Strike-Plugins"
 };
 
@@ -29,7 +30,7 @@ public void OnPluginStart()
     }
 
     g_CvarEnabled = CreateConVar("zh_showdamage_enabled", "1", "Enable/Disable the ShowDamage plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-    CreateConVar("zh_showdamage_version", myinfo.version, "ZH ShowDamage plugin version.", FCVAR_NOTIFY | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_DONTRECORD);
+    CreateConVar("zh_showdamage_version", PLUGIN_VERSION, "ZH ShowDamage plugin version.", FCVAR_NOTIFY | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_DONTRECORD);
 
     g_hCookie = RegClientCookie("zh_ssd", "ZH Style ShowDamage", CookieAccess_Private);
 

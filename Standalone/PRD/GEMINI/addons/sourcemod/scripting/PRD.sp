@@ -372,6 +372,19 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
 {
     g_iRoundCounter++;
 
+    // Snapshot MVP stars to compute delta in next round
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i))
+        {
+            g_iPrevMvpStars[i] = CS_GetMVPCount(i);
+        }
+        else
+        {
+            g_iPrevMvpStars[i] = 0;
+        }
+    }
+
     if (g_bMvpVoteActive)
     {
         FinalizeMvpReward();
@@ -400,18 +413,7 @@ public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
         }
     }
 
-    // Snapshot MVP stars to compute delta in next round
-    for (int i = 1; i <= MaxClients; i++)
-    {
-        if (IsClientInGame(i))
-        {
-            g_iPrevMvpStars[i] = CS_GetMVPCount(i);
-        }
-        else
-        {
-            g_iPrevMvpStars[i] = 0;
-        }
-    }
+
 
     for (int i = 0; i < 5; i++)
     {

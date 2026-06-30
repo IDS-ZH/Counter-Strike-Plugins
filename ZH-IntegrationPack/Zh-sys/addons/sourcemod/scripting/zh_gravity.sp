@@ -130,7 +130,7 @@ public int MenuHandler_Gravity(Menu menu, MenuAction action, int param1, int par
 void DisplayMultiplierSubMenu(int client)
 {
 	Menu menu = new Menu(MenuHandler_GravityMultiplier);
-	Format(menu.Title, 256, "Множитель (текущий: %.2f)", g_fGravityMultiplier);
+	menu.SetTitle("Множитель (текущий: %.2f)", g_fGravityMultiplier);
 	menu.ExitButton = true;
 
 	menu.AddItem("1.0", "Нормальная (1.0)");

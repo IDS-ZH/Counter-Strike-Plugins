@@ -55,7 +55,7 @@ public void OnPluginStart()
         }
     }
 
-    RegAdminCmd("sm_rha", Command_RHA, ADMFLAG_GENERIC, "RHA admin menu");
+    RegAdminCmd("sm_rha", Command_RHA, ADMFLAG_ROOT, "RHA admin menu");
 }
 
 public void OnPluginEnd()
@@ -93,7 +93,7 @@ public void OnAdminMenuReady(Handle topmenu)
             AdminMenu_RHAMenu,
             category,
             "sm_rha",
-            ADMFLAG_GENERIC
+            ADMFLAG_ROOT
         );
     }
 }
@@ -185,7 +185,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 
     if (client == 0 || !IsClientInGame(client) || !IsPlayerAlive(client)) return;
 
-    CreateTimer(0.1, Timer_ApplySettings, userid);
+    CreateTimer(0.5, Timer_ApplySettings, userid);
 }
 
 public Action Timer_ApplySettings(Handle timer, any userid)
@@ -228,13 +228,9 @@ KeyValues GetClientGroupSettings(int client, bool isBot)
     if (isBot)
     {
         g_kvBots.Rewind();
-        if (g_kvBots.GotoFirstSubKey())
-        {
-            KeyValues kvBot = new KeyValues("Bots");
-            KvCopySubkeys(g_kvBots, kvBot);
-            return kvBot;
-        }
-        return null;
+        KeyValues kvBot = new KeyValues("Bots");
+        KvCopySubkeys(g_kvBots, kvBot);
+        return kvBot;
     }
 
     g_kvHumans.Rewind();
@@ -341,6 +337,8 @@ void ApplyHealthArmorToClient(int client, bool silent)
         return;
     }
 
+    g_bImmortalityAdmins[client] = kvGroup.GetNum("CanUseImmortality", 0) == 1;
+
     if (kvGroup.JumpToKey(sTeam))
     {
         int health = kvGroup.GetNum("health", 100);
@@ -371,8 +369,6 @@ void ApplyHealthArmorToClient(int client, bool silent)
             CPrintToChat(client, "%t", "RHA_GroupMessage", groupName, health, armor, (helmet == 1) ? "Yes" : "No");
         }
     }
-
-    g_bImmortalityAdmins[client] = kvGroup.GetNum("CanUseImmortality", 0) == 1;
 
     delete kvGroup;
 }

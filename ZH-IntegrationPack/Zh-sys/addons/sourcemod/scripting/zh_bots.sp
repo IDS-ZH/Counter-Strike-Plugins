@@ -54,6 +54,11 @@ public Action Command_SetBeacon(int client, int args)
     {
         return Plugin_Handled;
     }
+    if (g_CvarBotBeacons != null && !g_CvarBotBeacons.BoolValue)
+    {
+        ReplyToCommand(client, "[ZH-Bots] Beacon is disabled (zh_bot_beacon=0).");
+        return Plugin_Handled;
+    }
     float pos[3];
     GetClientAbsOrigin(client, pos);
     // TODO: store beacon position and issue bot navigation orders (ccsbot detours).

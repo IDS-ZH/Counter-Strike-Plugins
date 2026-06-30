@@ -1,0 +1,98 @@
+"Phrases"
+{
+    "TKMenuTitle"
+    {
+        "en" "Teamkill: %s attacked you!"
+        "ru" "Тимкилл: %s атаковал вас!"
+    }
+    "TKMenuForgive"
+    {
+        "en" "Forgive"
+        "ru" "Простить"
+    }
+    "Teamkill_AutoPunish"
+    {
+        "en" "{red}[PRD]{default} %N was auto-punished for attacking teammate %N."
+        "ru" "{red}[PRD]{default} %N был наказан за атаку своего %N."
+    }
+    "Teamkill_VictimNotice"
+    {
+        "en" "{green}[PRD]{default} You were attacked by teammate %N. Check menu to punish/forgive."
+        "ru" "{green}[PRD]{default} Вас атаковал %N. Выберите наказание в меню."
+    }
+    "Camp_Warning"
+    {
+        "en" "{red}[PRD]{default} Stop camping or you will be punished!"
+        "ru" "{red}[PRD]{default} Хватит кемперить, иначе будете наказаны!"
+    }
+    "Camp_Penalty_Slap"
+    {
+        "en" "{red}[PRD]{default} Slapped for camping! (-%d HP)"
+        "ru" "{red}[PRD]{default} Шлепок за кемперство! (-%d HP)"
+    }
+    "Camp_Penalty_Ignite"
+    {
+        "en" "{red}[PRD]{default} Ignited for camping!"
+        "ru" "{red}[PRD]{default} Подожжен за кемперство!"
+    }
+    "MVP_Vote_Start"
+    {
+        "en" "{green}[MVP]{default} Voting for MVP: {lightgreen}%s"
+        "ru" "{green}[MVP]{default} Голосование за MVP: {lightgreen}%s"
+    }
+    "MVP_Reward_Given"
+    {
+        "en" "{green}[MVP]{default} %N has been awarded $%d!"
+        "ru" "{green}[MVP]{default} %N получил награду $%d!"
+    }
+    "MVP_Vote_Failed"
+    {
+        "en" "{red}[MVP]{default} Vote failed or not enough votes."
+        "ru" "{red}[MVP]{default} Голосование не состоялось."
+    }
+    "PRD_Punish_Slap"
+    {
+        "en" "Slap (-%d HP)"
+        "ru" "Шлепнуть (-%d HP)"
+    }
+    "PRD_Punish_Slay"
+    {
+        "en" "Slay"
+        "ru" "Убить"
+    }
+    "PRD_Punish_Drug"
+    {
+        "en" "Drug"
+        "ru" "Наркотики"
+    }
+    "PRD_Punish_Beacon"
+    {
+        "en" "Beacon"
+        "ru" "Маяк"
+    }
+    "PRD_Punish_Fire"
+    {
+        "en" "Set on Fire"
+        "ru" "Поджечь"
+    }
+    "PRD_Punish_Freeze"
+    {
+        "en" "Freeze"
+        "ru" "Заморозить"
+    }
+    "PRD_Punish_Timebomb"
+    {
+        "en" "Timebomb"
+        "ru" "Таймбомба"
+    }
+    "Punished_By_Victim"
+    {
+        "en" "{red}[PRD]{default} You were punished by %N."
+        "ru" "{red}[PRD]{default} Вы были наказаны игроком %N."
+    }
+    "Forgiven_By_Victim"
+    {
+        "en" "{green}[PRD]{default} You were forgiven by %N."
+        "ru" "{green}[PRD]{default} Вы были прощены игроком %N."
+    }
+}

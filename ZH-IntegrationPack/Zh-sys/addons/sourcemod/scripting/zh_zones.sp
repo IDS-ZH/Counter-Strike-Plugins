@@ -8,7 +8,6 @@
 #define PLUGIN_VERSION "0.1.0-draft"
 
 ConVar g_CvarZonesDebug;
-char g_ConfigPath[PLATFORM_MAX_PATH];
 bool g_ZonesLoaded;
 
 public Plugin myinfo =
@@ -30,8 +29,6 @@ public void OnPluginStart()
     g_CvarZonesDebug = CreateConVar("zh_zones_debug", "0", "Enables extra debug output for zones.");
     AutoExecConfig(true, "zh_zones", "sourcemod");
 
-    ZH_BuildConfigPath(ZHConfig_Custom, "Zones/%s.cfg", g_ConfigPath, sizeof(g_ConfigPath));
-
     RegAdminCmd("sm_zhzones_reload", Command_ReloadZones, ADMFLAG_CONFIG, "Reload ZH zone definitions for the current map.");
 
     ZH_RegisterModule("zones");
@@ -45,17 +42,24 @@ public void OnMapStart()
 public Action Command_ReloadZones(int client, int args)
 {
     LoadZones();
-    ReplyToCommand(client, "[ZH-Zones] Reloaded.");
+    ReplyToCommand(client, g_ZonesLoaded ? "[ZH-Zones] Reloaded." : "[ZH-Zones] No config for this map.");
     return Plugin_Handled;
 }
 
 void LoadZones()
 {
+    g_ZonesLoaded = false;
+
     char map[PLATFORM_MAX_PATH];
     GetCurrentMap(map, sizeof(map));
 
     char cfgPath[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, cfgPath, sizeof(cfgPath), "configs/ZH-sys/Zones/%s.cfg", map);
+    BuildPath(Path_SM, cfgPath, sizeof(cfgPath), "configs/ZH-sys/Modifiers/Zones/%s.cfg", map);
+
+    if (g_CvarZonesDebug != null && g_CvarZonesDebug.BoolValue)
+    {
+        ZH_LogInfo("Zones: loading %s", cfgPath);
+    }
 
     if (!FileExists(cfgPath))
     {

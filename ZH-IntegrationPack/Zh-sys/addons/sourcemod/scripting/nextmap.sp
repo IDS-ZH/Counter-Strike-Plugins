@@ -51,6 +51,12 @@ ArrayList g_MapList = null;
 int g_MapListSerial = -1;
 
 int g_CurrentMapStartTime;
+ConVar g_CvarMapcycleFile;
+ConVar g_CvarMapcyclePool;
+
+static const char ZH_MAPCYCLE_PRIMARY[] = "cfg/mapcycle.txt";
+static const char ZH_MAPCYCLE_FALLBACK[] = "addons/sourcemod/configs/ZH-sys/Tools/MapCycle/zh_mapcycle.cfg";
+static const char ZH_MAPCYCLE_POOLS[] = "configs/ZH-sys/Tools/MapCycle/zh_mapcycle_pools.cfg";
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -85,6 +91,13 @@ public void OnPluginStart()
 	int size = ByteCountToCells(PLATFORM_MAX_PATH);
 	g_MapList = new ArrayList(size);
 
+	g_CvarMapcycleFile = FindConVar("mapcyclefile");
+	g_CvarMapcyclePool = FindConVar("zh_mapcycle_pool");
+	if (g_CvarMapcyclePool == null)
+	{
+		g_CvarMapcyclePool = CreateConVar("zh_mapcycle_pool", "", "Mapcycle pool key from configs/ZH-sys/Tools/MapCycle/zh_mapcycle_pools.cfg.", 0);
+	}
+
 	RegAdminCmd("sm_maphistory", Command_MapHistory, ADMFLAG_CHANGEMAP, "Shows the most recent maps played");
 	RegConsoleCmd("listmaps", Command_List);
 
@@ -103,6 +116,8 @@ public void OnMapStart()
  
 public void OnConfigsExecuted()
 {
+	EnsureMapcycleFile();
+
 	char lastMap[PLATFORM_MAX_PATH], currentMap[PLATFORM_MAX_PATH];
 	GetNextMap(lastMap, sizeof(lastMap));
 	GetCurrentMap(currentMap, sizeof(currentMap));
@@ -139,6 +154,148 @@ public Action Command_List(int client, int args)
 	return Plugin_Handled;
 }
   
+bool ApplyMapcyclePoolOverride(bool hasCurrent, bool isDefault)
+{
+	if (g_CvarMapcyclePool == null || g_CvarMapcycleFile == null)
+	{
+		return false;
+	}
+
+	char requested[64];
+	g_CvarMapcyclePool.GetString(requested, sizeof(requested));
+	TrimString(requested);
+
+	bool allowDefault = (!hasCurrent || isDefault);
+	if (requested[0] == '\0' && !allowDefault)
+	{
+		return false;
+	}
+
+	char configPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, configPath, sizeof(configPath), ZH_MAPCYCLE_POOLS);
+	if (!FileExists(configPath))
+	{
+		if (requested[0] != '\0')
+		{
+			LogError("Mapcycle pools config not found: %s", configPath);
+		}
+		return false;
+	}
+
+	KeyValues kv = new KeyValues("ZH_MapCyclePools");
+	if (!kv.ImportFromFile(configPath))
+	{
+		delete kv;
+		LogError("Mapcycle pools config failed to parse: %s", configPath);
+		return false;
+	}
+
+	char selected[64];
+	if (requested[0] != '\0')
+	{
+		strcopy(selected, sizeof(selected), requested);
+	}
+	else
+	{
+		if (!kv.JumpToKey("settings"))
+		{
+			delete kv;
+			return false;
+		}
+
+		kv.GetString("default_pool", selected, sizeof(selected), "");
+		kv.Rewind();
+		if (selected[0] == '\0')
+		{
+			delete kv;
+			return false;
+		}
+	}
+
+	if (!kv.JumpToKey("pools"))
+	{
+		delete kv;
+		LogError("Mapcycle pools missing 'pools' section in %s", configPath);
+		return false;
+	}
+
+	if (!kv.JumpToKey(selected))
+	{
+		delete kv;
+		if (requested[0] != '\0')
+		{
+			LogError("Mapcycle pool '%s' not found in %s", selected, configPath);
+		}
+		return false;
+	}
+
+	char poolFile[PLATFORM_MAX_PATH];
+	kv.GetString("file", poolFile, sizeof(poolFile), "");
+	delete kv;
+
+	TrimString(poolFile);
+	if (poolFile[0] == '\0')
+	{
+		LogError("Mapcycle pool '%s' missing file path in %s", selected, configPath);
+		return false;
+	}
+
+	if (!FileExists(poolFile))
+	{
+		LogError("Mapcycle pool '%s' file not found: %s", selected, poolFile);
+		return false;
+	}
+
+	g_CvarMapcycleFile.SetString(poolFile);
+	return true;
+}
+
+void EnsureMapcycleFile()
+{
+	if (g_CvarMapcycleFile == null)
+	{
+		return;
+	}
+
+	char current[PLATFORM_MAX_PATH];
+	g_CvarMapcycleFile.GetString(current, sizeof(current));
+
+	bool hasCurrent = (current[0] != '\0' && FileExists(current));
+	bool isDefault = StrEqual(current, "mapcycle.txt", false) || StrEqual(current, ZH_MAPCYCLE_PRIMARY, false);
+
+	if (ApplyMapcyclePoolOverride(hasCurrent, isDefault))
+	{
+		return;
+	}
+
+	if (FileExists(ZH_MAPCYCLE_PRIMARY))
+	{
+		if (!hasCurrent || isDefault)
+		{
+			g_CvarMapcycleFile.SetString(ZH_MAPCYCLE_PRIMARY);
+			return;
+		}
+
+		if (hasCurrent)
+		{
+			return;
+		}
+	}
+
+	if (hasCurrent)
+	{
+		return;
+	}
+
+	if (FileExists(ZH_MAPCYCLE_FALLBACK))
+	{
+		g_CvarMapcycleFile.SetString(ZH_MAPCYCLE_FALLBACK);
+		return;
+	}
+
+	LogError("No mapcycle file found. Checked: %s, %s", ZH_MAPCYCLE_PRIMARY, ZH_MAPCYCLE_FALLBACK);
+}
+
 void FindAndSetNextMap(char[] currentMap)
 {
 	if (ReadMapList(g_MapList, 

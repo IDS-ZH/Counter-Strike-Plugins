@@ -83,3 +83,29 @@
 - [13:00] Consolidated documentation into All_Docs.md, removing redundant files (Available_Documents_and_RAG_Guide.md, Updates_Dec2025.md, Configuration_Files_List.md)
 - [13:30] Enhanced security validation for web-based CVAR management with additional type checking and range validation
 - [14:00] Updated All_Docs.md with comprehensive CVAR list and improved MaterialAdmin integration information
+
+## 2025-12-19
+- [14:00] Performed consolidation of documentation by merging contents of Architecture_Refactoring_Recommendations.md into All_Docs.md
+- [14:30] Added new section 22 "Архитектурные особенности ZH-IntegrationPack" to All_Docs.md with sub-sections covering current architecture state, MST classification, expansion structure, config structure unification, source code updates, architecture documentation, dependency checks, and additional architectural notes
+- [15:00] Removed Architecture_Refactoring_Recommendations.md file after successful content transfer
+- [15:30] Verified that all architectural recommendations and notes were properly integrated into the main documentation
+- [16:00] Updated project structure documentation to reflect unified documentation approach in All_Docs.md
+
+## 2025-12-21 (audit / corrections)
+- Verified ZH-sys SourcePawn build: all `Zh-sys/addons/sourcemod/scripting/zh_*.sp` compile cleanly with SM 1.13 `spcomp` (using `-i .../include`).
+- Fixed real compile blockers introduced by recent edits: invalid include-guards (`#pragma once`) in `.inc`, invalid SourcePawn code in `zh_core.sp`, KeyValues API misuse and invalid enum usage in `zh_mst.sp`, plus smaller tag/unused issues across modules.
+- Canonical KV config roots: `addons/sourcemod/configs/ZH-sys/{Core,GUI,Modifiers,Tools}/...`; updated `zh_rha.sp` and `zh_zones.sp` to read from `Modifiers/Rule-Health+Armor/` and `Modifiers/Zones/` (RHA keeps fallback to legacy `configs/ZH-sys/RHA/`).
+- Added missing third-party includes under `Zh-sys/addons/sourcemod/scripting/include/` so ZH plugins build standalone: `multicolors`, `easy_hudmessage`, `system2`, `json`.
+- Note: previous worklog entries about a separate `zh_dragonbullet` module and extra `zh_mst_*` split plugins are not present in the current tree; DragonBreath remains a module include under `zh_ammocontrol/dragonbreath.sp`.
+- `zh_debug_logger.sp` exists as an optional debug plugin and compiles; decide later whether to ship/load it on prod.
+
+## 2025-12-27
+- [10:00] Started analysis of standard nominations.sp and mapchooser.sp plugins for integration with ZH-sys architecture
+- [10:15] Identified potential conflicts with ZH-sys standards: CVAR naming conventions, module registration, and centralized logging system
+- [10:30] Analyzed existing ZH-specific modifications in both plugins: ZH_MAPCYCLE_PRIMARY, ZH_MAPCYCLE_FALLBACK, ZH_MAPCYCLE_POOLS definitions and ApplyMapcyclePoolOverride function
+- [10:45] Determined that plugins already have partial ZH-sys integration but lack web panel control capabilities
+- [11:00] Planned integration approach: extend zh_webbridge.sp to handle map vote commands from web panel using existing natives from nominations/mapchooser
+- [11:15] Designed web panel command structure: start_map_vote, cancel_map_vote, get_nominated_maps, add_map_to_vote, remove_map_from_vote, set_next_map, get_current_vote_status
+- [11:30] Outlined configuration updates needed: zh_web_cvar_config.cfg additions for map vote related CVARs
+- [11:45] Documented testing approach for verifying integration without conflicts between game and web-based controls
+- [12:00] Completed comprehensive analysis and integration plan for nominations/mapchooser with ZH-sys architecture and web panel control

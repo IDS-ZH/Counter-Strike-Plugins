@@ -193,15 +193,16 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
     int userid = event.GetInt("userid");
     int client = GetClientOfUserId(userid);
 
-    if (client == 0 || !IsClientInGame(client) || !IsPlayerAlive(client)) return;
-
-    CreateTimer(0.1, Timer_ApplySettings, userid);
+    if (ZH_IsValidClient(client))
+    {
+        CreateTimer(0.1, Timer_ApplySettings, userid);
+    }
 }
 
 public Action Timer_ApplySettings(Handle timer, any userid)
 {
     int client = GetClientOfUserId(userid);
-    if (client > 0 && IsClientInGame(client) && IsPlayerAlive(client))
+    if (ZH_IsValidClient(client, true))
     {
         ApplyHealthArmorToClient(client, false);
     }
@@ -212,24 +213,44 @@ void LoadConfig()
 {
     // --- Load Humans Config ---
     char human_path[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, human_path, sizeof(human_path), "configs/ZH-sys/RHA/RHA_humans.cfg");
+    BuildPath(Path_SM, human_path, sizeof(human_path), "configs/ZH-sys/Modifiers/Rule-Health+Armor/RHA_humans.cfg");
 
     g_kvHumans = new KeyValues("Groups");
 
     if (!g_kvHumans.ImportFromFile(human_path))
     {
-        LogError("[ZH-RHA] Failed to load or parse config file: %s. Check for syntax errors.", human_path);
+        char legacy_human_path[PLATFORM_MAX_PATH];
+        BuildPath(Path_SM, legacy_human_path, sizeof(legacy_human_path), "configs/ZH-sys/RHA/RHA_humans.cfg");
+
+        if (!g_kvHumans.ImportFromFile(legacy_human_path))
+        {
+            LogError("[ZH-RHA] Failed to load or parse config file: %s (also tried %s). Check for syntax errors.", human_path, legacy_human_path);
+        }
+        else
+        {
+            LogMessage("[ZH-RHA] Loaded legacy humans config: %s", legacy_human_path);
+        }
     }
 
     // --- Load Bots Config ---
     char bot_path[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, bot_path, sizeof(bot_path), "configs/ZH-sys/RHA/RHA_bots.cfg");
+    BuildPath(Path_SM, bot_path, sizeof(bot_path), "configs/ZH-sys/Modifiers/Rule-Health+Armor/RHA_bots.cfg");
 
     g_kvBots = new KeyValues("Bots");
 
     if (!g_kvBots.ImportFromFile(bot_path))
     {
-        LogError("[ZH-RHA] Failed to load or parse config file: %s. Check for syntax errors.", bot_path);
+        char legacy_bot_path[PLATFORM_MAX_PATH];
+        BuildPath(Path_SM, legacy_bot_path, sizeof(legacy_bot_path), "configs/ZH-sys/RHA/RHA_bots.cfg");
+
+        if (!g_kvBots.ImportFromFile(legacy_bot_path))
+        {
+            LogError("[ZH-RHA] Failed to load or parse config file: %s (also tried %s). Check for syntax errors.", bot_path, legacy_bot_path);
+        }
+        else
+        {
+            LogMessage("[ZH-RHA] Loaded legacy bots config: %s", legacy_bot_path);
+        }
     }
 }
 

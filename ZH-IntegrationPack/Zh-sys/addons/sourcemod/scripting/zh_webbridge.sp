@@ -13,7 +13,9 @@
 ConVar g_CvarMode;       // 0=REST only, 1=WebSocket
 ConVar g_CvarEndpoint;   // REST endpoint base URL
 ConVar g_CvarApiKey;     // Shared token
+#if defined _websocket_included
 ConVar g_CvarWsUrl;      // WebSocket URL (if mode 1)
+#endif
 Handle g_HeartbeatTimer;
 
 public Plugin myinfo =
@@ -35,7 +37,9 @@ public void OnPluginStart()
     g_CvarMode = CreateConVar("zh_web_mode", "0", "0=REST (system2), 1=WebSocket (requires sm-ext-websocket).");
     g_CvarEndpoint = CreateConVar("zh_web_endpoint", "http://127.0.0.1/materialadmin/api", "Base URL for REST API.");
     g_CvarApiKey = CreateConVar("zh_web_apikey", "changeme", "API key/shared secret.");
+#if defined _websocket_included
     g_CvarWsUrl = CreateConVar("zh_web_wsurl", "ws://127.0.0.1:8080/ws", "WebSocket URL (if mode=1).");
+#endif
 
     AutoExecConfig(true, "zh_webbridge", "sourcemod");
 
