@@ -10,7 +10,7 @@
 #include <adminmenu>
 #include <adt_trie>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 ConVar g_hCvarEnabled;
 ConVar g_hCvarImmortalityMode;
@@ -22,6 +22,8 @@ KeyValues g_kvBots;
 TopMenu g_hAdminMenu;
 
 bool g_bImmortalityAdmins[MAXPLAYERS + 1];
+
+StringMap g_smPermissions;
 
 public Plugin myinfo = 
 {
@@ -39,6 +41,8 @@ public void OnPluginStart()
     g_hCvarEnableLogging = CreateConVar("sm_rha_enable_logging", "0", "Enable/Disable logging for the RHA plugin.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     CreateConVar("sm_rha_version", PLUGIN_VERSION, "Rule_Health&Armor plugin version.", FCVAR_NOTIFY | FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_DONTRECORD);
 
+    g_smPermissions = new StringMap();
+
     LoadTranslations("common.phrases.txt");
     LoadTranslations("RHA.phrases.txt");
 
@@ -55,7 +59,9 @@ public void OnPluginStart()
         }
     }
 
-    RegAdminCmd("sm_rha", Command_RHA, ADMFLAG_ROOT, "RHA admin menu");
+    RegConsoleCmd("sm_rha", Command_RHA, "RHA admin menu");
+    RegConsoleCmd("rha", Command_RHA, "RHA admin menu");
+    RegAdminCmd("sm_rha_reload", Command_RHAReload, ADMFLAG_ROOT, "Reload RHA configs");
 }
 
 public void OnPluginEnd()
@@ -67,6 +73,10 @@ public void OnPluginEnd()
     if (g_kvBots != null)
     {
         delete g_kvBots;
+    }
+    if (g_smPermissions != null)
+    {
+        delete g_smPermissions;
     }
 }
 
@@ -113,16 +123,75 @@ public void AdminMenu_RHAMenu(TopMenu topmenu, TopMenuAction action, TopMenuObje
 void BuildRHAMenu(int client)
 {
     Menu menu = new Menu(RHAMenuHandler);
-    menu.SetTitle("RHA Settings");
+    menu.SetTitle("RHA Settings\n ");
+    
+    int itemsAdded = 0;
+    char buffer[128];
 
-    char buffer[64];
-    Format(buffer, sizeof(buffer), "Plugin Status: %s", g_hCvarEnabled.BoolValue ? "Enabled" : "Disabled");
-    menu.AddItem("sm_rha_enabled", buffer);
+    if (HasAccessToSetting(client, "sm_rha_enabled"))
+    {
+        Format(buffer, sizeof(buffer), "Plugin Status: %s", g_hCvarEnabled.BoolValue ? "Enabled" : "Disabled");
+        menu.AddItem("sm_rha_enabled", buffer);
+        itemsAdded++;
+    }
 
-    Format(buffer, sizeof(buffer), "Immortality Mode: %s", g_hCvarImmortalityMode.BoolValue ? "Invincible" : "Disabled");
-    menu.AddItem("sm_rha_admin_immortality_mode", buffer);
+    if (HasAccessToSetting(client, "sm_rha_admin_immortality_mode"))
+    {
+        Format(buffer, sizeof(buffer), "Immortality Mode: %s", g_hCvarImmortalityMode.BoolValue ? "Invincible" : "Disabled");
+        menu.AddItem("sm_rha_admin_immortality_mode", buffer);
+        itemsAdded++;
+    }
+
+    if (HasAccessToSetting(client, "sm_rha_enable_logging"))
+    {
+        Format(buffer, sizeof(buffer), "Logging: %s", g_hCvarEnableLogging.BoolValue ? "Enabled" : "Disabled");
+        menu.AddItem("sm_rha_enable_logging", buffer);
+        itemsAdded++;
+    }
+
+    if (itemsAdded == 0)
+    {
+        PrintToChat(client, "[RHA] You do not have access to this menu.");
+        delete menu;
+        return;
+    }
 
     menu.Display(client, MENU_TIME_FOREVER);
+}
+
+bool HasAccessToSetting(int client, const char[] settingName)
+{
+    if (GetAdminFlag(GetUserAdmin(client), Admin_Root)) return true;
+
+    char allowRuler[256];
+    if (g_smPermissions.GetString(settingName, allowRuler, sizeof(allowRuler)))
+    {
+        if (allowRuler[0] == '\0') return false; 
+
+        char auth[64];
+        GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+
+        char parts[16][64];
+        int count = ExplodeString(allowRuler, " ", parts, sizeof(parts), sizeof(parts[]));
+        for (int i = 0; i < count; i++)
+        {
+            if (parts[i][0] == '\0') continue;
+            if (StrEqual(parts[i], auth, false)) return true;
+
+            AdminId admin = GetUserAdmin(client);
+            if (admin != INVALID_ADMIN_ID)
+            {
+                int groupCount = GetAdminGroupCount(admin);
+                char groupName[64];
+                for (int g = 0; g < groupCount; g++)
+                {
+                    admin.GetGroup(g, groupName, sizeof(groupName));
+                    if (StrEqual(groupName, parts[i], false)) return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 public int RHAMenuHandler(Menu menu, MenuAction action, int param1, int param2)
@@ -142,6 +211,11 @@ public int RHAMenuHandler(Menu menu, MenuAction action, int param1, int param2)
             g_hCvarImmortalityMode.BoolValue = !g_hCvarImmortalityMode.BoolValue;
             RHA_LogAction(param1, -1, "Toggled RHA immortality %s", g_hCvarImmortalityMode.BoolValue ? "On" : "Off");
         }
+        else if (StrEqual(info, "sm_rha_enable_logging"))
+        {
+            g_hCvarEnableLogging.BoolValue = !g_hCvarEnableLogging.BoolValue;
+            RHA_LogAction(param1, -1, "Toggled RHA logging %s", g_hCvarEnableLogging.BoolValue ? "On" : "Off");
+        }
 
         BuildRHAMenu(param1);
     }
@@ -157,6 +231,20 @@ public Action Command_RHA(int client, int args)
     if (client > 0 && IsClientInGame(client))
     {
         BuildRHAMenu(client);
+    }
+    return Plugin_Handled;
+}
+
+public Action Command_RHAReload(int client, int args)
+{
+    LoadConfig();
+    if (client > 0 && IsClientInGame(client))
+    {
+        PrintToChat(client, "[RHA] Configs reloaded successfully.");
+    }
+    else
+    {
+        PrintToServer("[RHA] Configs reloaded successfully.");
     }
     return Plugin_Handled;
 }
@@ -200,10 +288,48 @@ public Action Timer_ApplySettings(Handle timer, any userid)
 
 void LoadConfig()
 {
+    // --- Load Settings Config (Allow_ruler & default cvars) ---
+    char settings_path[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, settings_path, sizeof(settings_path), "configs/RHA_settings.cfg");
+    g_smPermissions.Clear();
+    
+    KeyValues kvSettings = new KeyValues("RuleHealthArmor");
+    if (kvSettings.ImportFromFile(settings_path))
+    {
+        if (kvSettings.GotoFirstSubKey())
+        {
+            do
+            {
+                char keyName[64];
+                kvSettings.GetSectionName(keyName, sizeof(keyName));
+
+                char valStr[64];
+                kvSettings.GetString("value", valStr, sizeof(valStr));
+
+                ConVar cv = FindConVar(keyName);
+                if (cv != null)
+                {
+                    cv.SetString(valStr);
+                }
+
+                char allowRuler[256];
+                kvSettings.GetString("Allow_ruler", allowRuler, sizeof(allowRuler));
+                g_smPermissions.SetString(keyName, allowRuler);
+
+            } while (kvSettings.GotoNextKey());
+        }
+    }
+    else
+    {
+        LogError("[RHA] Failed to load %s. Proceeding without Allow_ruler limits.", settings_path);
+    }
+    delete kvSettings;
+
     // --- Load Humans Config ---
     char human_path[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, human_path, sizeof(human_path), "configs/RHA_humans.cfg");
 
+    if (g_kvHumans != null) delete g_kvHumans;
     g_kvHumans = new KeyValues("Groups");
 
     if (!g_kvHumans.ImportFromFile(human_path))
@@ -215,6 +341,7 @@ void LoadConfig()
     char bot_path[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, bot_path, sizeof(bot_path), "configs/RHA_bots.cfg");
 
+    if (g_kvBots != null) delete g_kvBots;
     g_kvBots = new KeyValues("Bots");
 
     if (!g_kvBots.ImportFromFile(bot_path))

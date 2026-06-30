@@ -68,3 +68,5 @@ CSS-GH/
 MM+SM/
 ZH-IntegrationPack/Zh-sys/MetaMod-Sources/sm-ripext/
 ZH-IntegrationPack/Zh-sys/CUSTOM/Custom_Maps/
+ZH-IntegrationPack/Zh-sys/MetaMod-Sources/*
+!ZH-IntegrationPack/Zh-sys/MetaMod-Sources/sm-ext-websocket/
