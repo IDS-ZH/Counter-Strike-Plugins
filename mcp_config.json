@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "css-rag": {
+      "command": "python3",
+      "args": [
+        "/mnt/2TB-NVME/mge_engineer/ZH-sys/For Games/CSS/for debugging/MCP/rag_server/rag_server.py"
+      ]
+    },
+    "ollama-minion": {
+      "command": "python3",
+      "args": [
+        "/mnt/2TB-NVME/mge_engineer/ZH-sys/For Games/CSS/for debugging/MCP/ollama_minion/ollama_minion.py"
+      ]
+    },
+    "blender-mcp": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "blmcp"
+      ]
+    }
+  }
+}
