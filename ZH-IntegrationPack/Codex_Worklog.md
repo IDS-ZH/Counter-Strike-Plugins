@@ -103,3 +103,8 @@ esource/scripts/materials changes needed; depend on configs/ZH-sys/... and stand
 - [01:10] Merged `Default_game_dir/cstrike/cfg/mapcycle.txt` into pool lists; regenerated mapcycle_*.cfg (cs/de counts grew) and refreshed `zh_mapcycle_pools.cfg`.
 - [20:16] Restored missing block separator for Legacy classifier in All_Docs.md (split inline separator into its own line).
 - [21:07] Prefixed numbered level-2 headings in All_Docs.md with block names and renumbered within each block to eliminate duplicate section numbers.
+
+## 2026-06-30
+- Cleaned up Git repository: restored corrupted 3rd party translations and added MetaMod-Sources to .gitignore (except sm-ext-websocket) to remove 600+ phantom changes.
+- Implemented 'Allow_ruler' access control system for Standalone plugins: `Immortal Hostages`, `Gravity Switcher`, and `Rule_Health&Armour`. Admins can now specify precise access via configs (SteamIDs and group names).
+- Bumped `Rule_Health&Armour` version to 1.1 and added RHA_settings.cfg for CVARs and Allow_ruler limits.

@@ -59,3 +59,18 @@
 2.  **Upload** the new `.smx` file, `RHA_humans.cfg`, and `RHA.phrases.txt` to the server.
 3.  **Test** the plugin, paying close attention to group assignments, chat messages, and the armor display for values > 100.
 4.  **Verify** that the `admins.cfg` on the server correctly assigns players to the desired admin groups (e.g., "VIP", "Full Admins").
+
+## 2026-06-30
+### Migrated to Allow_ruler System
+
+1.  **Refactored Configs:**
+    *   Created `configs/RHA_settings.cfg` for storing core CVARs (`sm_rha_enabled`, `sm_rha_admin_immortality_mode`, `sm_rha_enable_logging`) with `Allow_ruler` values.
+
+2.  **Updated Permission Logic:**
+    *   Integrated `HasAccessToSetting` logic using `StringMap` for parsing `Allow_ruler` rules (SteamID or Group).
+    *   Menu items now conditionally display based on individual setting permissions.
+
+3.  **Command Changes:**
+    *   Changed `sm_rha` from `RegAdminCmd` to `RegConsoleCmd` so any player can execute it (access managed dynamically via Allow_ruler rules).
+    *   Added `sm_rha_reload` (admin only) to reload configs on the fly.
+    *   Bumped version to 1.1.
