@@ -102,33 +102,39 @@ public Action Command_ReloadConfig(int client, int args)
 
 bool HasAccessToSetting(int client, const char[] settingName)
 {
-    if (GetAdminFlag(GetUserAdmin(client), Admin_Root)) return true;
-
     char allowRuler[256];
     if (g_smPermissions.GetString(settingName, allowRuler, sizeof(allowRuler)))
     {
         if (allowRuler[0] == '\0') return false; 
-        
-        char auth[64];
-        GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+    }
+    else
+    {
+        AdminId admin = GetUserAdmin(client);
+        if (admin != INVALID_ADMIN_ID && GetAdminFlag(admin, Admin_Root)) return true;
+        return false;
+    }
 
-        char parts[16][64];
-        int count = ExplodeString(allowRuler, " ", parts, sizeof(parts), sizeof(parts[]));
-        for (int i = 0; i < count; i++)
+    AdminId admin = GetUserAdmin(client);
+    if (admin != INVALID_ADMIN_ID && GetAdminFlag(admin, Admin_Root)) return true;
+
+    char auth[64];
+    GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+
+    char parts[16][64];
+    int count = ExplodeString(allowRuler, " ", parts, sizeof(parts), sizeof(parts[]));
+    for (int i = 0; i < count; i++)
+    {
+        if (parts[i][0] == '\0') continue;
+        if (StrEqual(parts[i], auth, false)) return true;
+
+        if (admin != INVALID_ADMIN_ID)
         {
-            if (parts[i][0] == '\0') continue;
-            if (StrEqual(parts[i], auth, false)) return true;
-
-            AdminId admin = GetUserAdmin(client);
-            if (admin != INVALID_ADMIN_ID)
+            int groupCount = GetAdminGroupCount(admin);
+            char groupName[64];
+            for (int g = 0; g < groupCount; g++)
             {
-                int groupCount = GetAdminGroupCount(admin);
-                char groupName[64];
-                for (int g = 0; g < groupCount; g++)
-                {
-                    admin.GetGroup(g, groupName, sizeof(groupName));
-                    if (StrEqual(groupName, parts[i], false)) return true;
-                }
+                admin.GetGroup(g, groupName, sizeof(groupName));
+                if (StrEqual(groupName, parts[i], false)) return true;
             }
         }
     }
@@ -148,31 +154,29 @@ void DisplayGravityMenu(int client)
     menu.SetTitle("Меню гравитации\n ");
     menu.ExitButton = true;
 
-    int itemsAdded = 0;
+    char status[128];
 
     if (HasAccessToSetting(client, "sm_gravity_enabled"))
     {
-        char status[64];
         Format(status, sizeof(status), "Низкая гравитация: %s", g_bLowGravEnabled ? "Включена" : "Выключена");
         menu.AddItem("toggle_lowgrav", status);
-        itemsAdded++;
+    }
+    else
+    {
+        Format(status, sizeof(status), "Низкая гравитация: [Нет доступа]");
+        menu.AddItem("toggle_lowgrav", status, ITEMDRAW_DISABLED);
     }
 
     if (HasAccessToSetting(client, "sm_gravity_multiplier"))
     {
         menu.AddItem("set_multiplier", "Установить множитель гравитации");
-        itemsAdded++;
-    }
-
-    if (itemsAdded == 0)
-    {
-        PrintToChat(client, "\x02[GravitySwitcher]\x01 У вас нет прав для изменения гравитации.");
-        delete menu;
     }
     else
     {
-        menu.Display(client, MENU_TIME_FOREVER);
+        menu.AddItem("set_multiplier", "Установить множитель [Нет доступа]", ITEMDRAW_DISABLED);
     }
+
+    menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_Gravity(Menu menu, MenuAction action, int param1, int param2)

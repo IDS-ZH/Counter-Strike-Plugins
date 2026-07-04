@@ -90,33 +90,39 @@ public Action Command_ReloadConfig(int client, int args)
 
 bool HasAccessToSetting(int client, const char[] settingName)
 {
-    if (GetAdminFlag(GetUserAdmin(client), Admin_Root)) return true;
-
     char allowRuler[256];
     if (g_smPermissions.GetString(settingName, allowRuler, sizeof(allowRuler)))
     {
         if (allowRuler[0] == '\0') return false; 
-        
-        char auth[64];
-        GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+    }
+    else
+    {
+        AdminId admin = GetUserAdmin(client);
+        if (admin != INVALID_ADMIN_ID && GetAdminFlag(admin, Admin_Root)) return true;
+        return false;
+    }
 
-        char parts[16][64];
-        int count = ExplodeString(allowRuler, " ", parts, sizeof(parts), sizeof(parts[]));
-        for (int i = 0; i < count; i++)
+    AdminId admin = GetUserAdmin(client);
+    if (admin != INVALID_ADMIN_ID && GetAdminFlag(admin, Admin_Root)) return true;
+
+    char auth[64];
+    GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+
+    char parts[16][64];
+    int count = ExplodeString(allowRuler, " ", parts, sizeof(parts), sizeof(parts[]));
+    for (int i = 0; i < count; i++)
+    {
+        if (parts[i][0] == '\0') continue;
+        if (StrEqual(parts[i], auth, false)) return true;
+
+        if (admin != INVALID_ADMIN_ID)
         {
-            if (parts[i][0] == '\0') continue;
-            if (StrEqual(parts[i], auth, false)) return true;
-
-            AdminId admin = GetUserAdmin(client);
-            if (admin != INVALID_ADMIN_ID)
+            int groupCount = GetAdminGroupCount(admin);
+            char groupName[64];
+            for (int g = 0; g < groupCount; g++)
             {
-                int groupCount = GetAdminGroupCount(admin);
-                char groupName[64];
-                for (int g = 0; g < groupCount; g++)
-                {
-                    admin.GetGroup(g, groupName, sizeof(groupName));
-                    if (StrEqual(groupName, parts[i], false)) return true;
-                }
+                admin.GetGroup(g, groupName, sizeof(groupName));
+                if (StrEqual(groupName, parts[i], false)) return true;
             }
         }
     }
@@ -132,21 +138,25 @@ public Action Command_HostagesMenu(int client, int args)
 
 void DisplayHostagesMenu(int client)
 {
-    if (!HasAccessToSetting(client, "sm_hostages_mode"))
-    {
-        PrintToChat(client, "\x02[ImmortalHostages]\x01 У вас нет прав для изменения режима заложников.");
-        return;
-    }
-
     Menu menu = new Menu(MenuHandler_HostagesMode);
     int curMode = g_hCvarMode.IntValue;
     menu.SetTitle("Режим бессмертия заложников\nТекущий режим: %d\n ", curMode);
     menu.ExitButton = true;
 
-    menu.AddItem("0", "Нормальный (получают урон)");
-    menu.AddItem("1", "Уязвимы только для T");
-    menu.AddItem("2", "Уязвимы только для CT");
-    menu.AddItem("3", "Бессмертны (invulnerable)");
+    if (HasAccessToSetting(client, "sm_hostages_mode"))
+    {
+        menu.AddItem("0", "Нормальный (получают урон)");
+        menu.AddItem("1", "Уязвимы только для T");
+        menu.AddItem("2", "Уязвимы только для CT");
+        menu.AddItem("3", "Бессмертны (invulnerable)");
+    }
+    else
+    {
+        menu.AddItem("0", "Нормальный [Нет доступа]", ITEMDRAW_DISABLED);
+        menu.AddItem("1", "Уязвимы для T [Нет доступа]", ITEMDRAW_DISABLED);
+        menu.AddItem("2", "Уязвимы для CT [Нет доступа]", ITEMDRAW_DISABLED);
+        menu.AddItem("3", "Бессмертны [Нет доступа]", ITEMDRAW_DISABLED);
+    }
 
     menu.Display(client, MENU_TIME_FOREVER);
 }

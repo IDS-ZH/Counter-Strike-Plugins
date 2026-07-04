@@ -900,6 +900,18 @@ CVAR (образец):
 - Bots: MST class assignment for bots, bot directives (go to beacon/magnet), posses bot, flashlight control, BotsManager, botoverseer, ZR bot helpers; plan for CCSBot detours in C++ if needed.
 - Game modes: DM/TDM/GG toggles, Mix_mod, fan events; revive/rescue modules; integrate with PRD rewards and MST classes.
 - Extensions (MetaMod/SM): sm-ext-websocket (HTTP+WS), system2, FlashBang Tools, CSSDM/C++ if needed for deep hooks (bot goals, physics weapons). Keep builds under Zh-sys/MetaMod.
+
+## 28. CSS-ZH Master Architecture & Deep Integration (Client & Server)
+- **Automated Headless Testing (CI/CD):** Implementation of "PlayWright"-style stress testing using headless clients. Servers will run automated scripts with 28-30 bots at `host_timescale 10` to validate stability and detect race conditions in threaded code.
+- **Server-Side Multithreading (Snapshot-Queue Pattern):** Source engine is notoriously thread-unsafe. To bypass the single-thread CPU bottleneck, `zh_core_ext` will use a snapshot-queue architecture: the main thread captures the game state, worker threads (C++) compute heavy NavMesh A* paths and visibility, and the Python AI Coordinator (via Websockets) dictates high-level tactics. The main thread then executes these queued actions.
+- **Compiler Optimizations (AVX/SSE4.2):** Standard SDK 2013 binaries were built for older CPUs. The new `-game CSS-ZH` server/client binaries and extensions will be compiled with modern flags (`-mavx -msse4.2 -O3`) to massively accelerate physics (Havok) and vector math on modern CPUs.
+- **Client Graphics Overhaul (Vulkan & RTX):**
+  - **DXVK:** Bundled into the client `bin/` directory to natively translate the old D3D9 render pipeline into Vulkan, bypassing draw-call bottlenecks and maximizing GPU utilization (RX 6900 XT / Quadro).
+  - **RayTracing (Path Tracing):** Integration of ReShade RT for hardware-accelerated global illumination. Replaces baked lighting with physical Path Tracing, eliminating "pitch black corridors" in custom maps.
+  - **v34 Smoke Backport:** The legacy v34 smoke particle timings and density will be restored via `zh_core_ext`, overriding the nerfed 2013 OrangeBox smoke logic.
+- **Deep Voice/Radio Interception:** Intercept `IVoiceServer` to implement Positional Voice Chat (proximity) and Radio Mode. Radio commands (C, X, Z) and spotted locations map to NavMesh zones, feeding real-time tactical context to the Python AI Coordinator.
+- **C++ NavMesh & Bombsite Detours:** Real-time patching of `CCSBotManager` (`m_zone[i].m_isBlocked`) and `NAV_MESH_BOMB_TARGET` attributes. Allows the Web-GUI to vote and seamlessly disable bombsites without bots freezing.
+
 - Assets/FastDL: centralized downloads builder from MST/classes/weapons/zones; generate .res for map extras; use FastDL, not web panel.
 - Docs: per-module changelog; keep configs under configs/ZH-sys/{module}; translations in ZH-translations; build scripts under Zh-sys/SourceMod.
 

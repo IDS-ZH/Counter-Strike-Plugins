@@ -125,35 +125,39 @@ void BuildRHAMenu(int client)
     Menu menu = new Menu(RHAMenuHandler);
     menu.SetTitle("RHA Settings\n ");
     
-    int itemsAdded = 0;
     char buffer[128];
 
     if (HasAccessToSetting(client, "sm_rha_enabled"))
     {
         Format(buffer, sizeof(buffer), "Plugin Status: %s", g_hCvarEnabled.BoolValue ? "Enabled" : "Disabled");
         menu.AddItem("sm_rha_enabled", buffer);
-        itemsAdded++;
+    }
+    else
+    {
+        Format(buffer, sizeof(buffer), "Plugin Status: [No Access]");
+        menu.AddItem("sm_rha_enabled", buffer, ITEMDRAW_DISABLED);
     }
 
     if (HasAccessToSetting(client, "sm_rha_admin_immortality_mode"))
     {
         Format(buffer, sizeof(buffer), "Immortality Mode: %s", g_hCvarImmortalityMode.BoolValue ? "Invincible" : "Disabled");
         menu.AddItem("sm_rha_admin_immortality_mode", buffer);
-        itemsAdded++;
+    }
+    else
+    {
+        Format(buffer, sizeof(buffer), "Immortality Mode: [No Access]");
+        menu.AddItem("sm_rha_admin_immortality_mode", buffer, ITEMDRAW_DISABLED);
     }
 
     if (HasAccessToSetting(client, "sm_rha_enable_logging"))
     {
         Format(buffer, sizeof(buffer), "Logging: %s", g_hCvarEnableLogging.BoolValue ? "Enabled" : "Disabled");
         menu.AddItem("sm_rha_enable_logging", buffer);
-        itemsAdded++;
     }
-
-    if (itemsAdded == 0)
+    else
     {
-        PrintToChat(client, "[RHA] You do not have access to this menu.");
-        delete menu;
-        return;
+        Format(buffer, sizeof(buffer), "Logging: [No Access]");
+        menu.AddItem("sm_rha_enable_logging", buffer, ITEMDRAW_DISABLED);
     }
 
     menu.Display(client, MENU_TIME_FOREVER);
@@ -161,33 +165,39 @@ void BuildRHAMenu(int client)
 
 bool HasAccessToSetting(int client, const char[] settingName)
 {
-    if (GetAdminFlag(GetUserAdmin(client), Admin_Root)) return true;
-
     char allowRuler[256];
     if (g_smPermissions.GetString(settingName, allowRuler, sizeof(allowRuler)))
     {
         if (allowRuler[0] == '\0') return false; 
+    }
+    else
+    {
+        AdminId admin = GetUserAdmin(client);
+        if (admin != INVALID_ADMIN_ID && GetAdminFlag(admin, Admin_Root)) return true;
+        return false;
+    }
 
-        char auth[64];
-        GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+    AdminId admin = GetUserAdmin(client);
+    if (admin != INVALID_ADMIN_ID && GetAdminFlag(admin, Admin_Root)) return true;
 
-        char parts[16][64];
-        int count = ExplodeString(allowRuler, " ", parts, sizeof(parts), sizeof(parts[]));
-        for (int i = 0; i < count; i++)
+    char auth[64];
+    GetClientAuthId(client, AuthId_Steam2, auth, sizeof(auth));
+
+    char parts[16][64];
+    int count = ExplodeString(allowRuler, " ", parts, sizeof(parts), sizeof(parts[]));
+    for (int i = 0; i < count; i++)
+    {
+        if (parts[i][0] == '\0') continue;
+        if (StrEqual(parts[i], auth, false)) return true;
+
+        if (admin != INVALID_ADMIN_ID)
         {
-            if (parts[i][0] == '\0') continue;
-            if (StrEqual(parts[i], auth, false)) return true;
-
-            AdminId admin = GetUserAdmin(client);
-            if (admin != INVALID_ADMIN_ID)
+            int groupCount = GetAdminGroupCount(admin);
+            char groupName[64];
+            for (int g = 0; g < groupCount; g++)
             {
-                int groupCount = GetAdminGroupCount(admin);
-                char groupName[64];
-                for (int g = 0; g < groupCount; g++)
-                {
-                    admin.GetGroup(g, groupName, sizeof(groupName));
-                    if (StrEqual(groupName, parts[i], false)) return true;
-                }
+                admin.GetGroup(g, groupName, sizeof(groupName));
+                if (StrEqual(groupName, parts[i], false)) return true;
             }
         }
     }
