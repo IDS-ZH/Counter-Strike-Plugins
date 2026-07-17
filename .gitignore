@@ -70,3 +70,5 @@ ZH-IntegrationPack/Zh-sys/MetaMod-Sources/sm-ripext/
 ZH-IntegrationPack/Zh-sys/CUSTOM/Custom_Maps/
 ZH-IntegrationPack/Zh-sys/MetaMod-Sources/*
 !ZH-IntegrationPack/Zh-sys/MetaMod-Sources/sm-ext-websocket/
+.claude/
+_gemini_junk_archive/
