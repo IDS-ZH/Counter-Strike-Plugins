@@ -214,8 +214,19 @@ public Action Timer_HostageThink(Handle timer)
                 float dist = GetVectorLength(dir);
                 if (dist > 1.0)
                 {
+                    // Smooth velocity direction to prevent 8-way animation snapping
+                    static float lastDir[2048][3];
+                    if (g_bHostageMoving[hostage] && GetVectorLength(lastDir[hostage]) > 0.1)
+                    {
+                        dir[0] = lastDir[hostage][0] * 0.8 + dir[0] * 0.2;
+                        dir[1] = lastDir[hostage][1] * 0.8 + dir[1] * 0.2;
+                    }
                     NormalizeVector(dir, dir);
-                    ScaleVector(dir, 150.0);
+                    lastDir[hostage][0] = dir[0];
+                    lastDir[hostage][1] = dir[1];
+                    lastDir[hostage][2] = 0.0;
+                    
+                    ScaleVector(dir, 240.0); // 240.0 is closer to CS:S run speed, avoids walk/run boundary blend issues
                     
                     // Don't push down, let engine handle gravity and stairs
                     if (dir[2] < 0.0) dir[2] = 0.0; 
@@ -223,10 +234,24 @@ public Action Timer_HostageThink(Handle timer)
                     // Set velocity and angle manually
                     float angles[3];
                     GetVectorAngles(dir, angles);
-                    angles[0] = 0.0;
-                    angles[2] = 0.0;
                     
-                    TeleportEntity(hostage, NULL_VECTOR, angles, NULL_VECTOR); // Only update angles here
+                    // Smooth the body rotation
+                    float currentAngles[3];
+                    GetEntPropVector(hostage, Prop_Data, "m_angAbsRotation", currentAngles);
+                    
+                    float diff = angles[1] - currentAngles[1];
+                    while (diff > 180.0) diff -= 360.0;
+                    while (diff < -180.0) diff += 360.0;
+                    
+                    // Turn speed: ~15 degrees per 0.1s tick
+                    if (diff > 20.0) diff = 20.0;
+                    if (diff < -20.0) diff = -20.0;
+                    
+                    currentAngles[1] += diff;
+                    currentAngles[0] = 0.0;
+                    currentAngles[2] = 0.0;
+                    
+                    TeleportEntity(hostage, NULL_VECTOR, currentAngles, NULL_VECTOR); // Only update angles here
                     
                     g_HostageVelocity[hostage][0] = dir[0];
                     g_HostageVelocity[hostage][1] = dir[1];

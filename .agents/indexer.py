@@ -5,14 +5,15 @@ import urllib.error
 
 # Настройки
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "qwen2.5-coder:14b-instruct-q6_K"
+MODEL_NAME = "command-r"
 
 TARGET_DIRS = [
     "/mnt/2TB-NVME/mge_engineer/ZH-sys/For Games/CSS/for debugging/Counter-Strike-Plugins/In Development/Metamod+SourceMod/Legacy",
     "/mnt/2TB-NVME/mge_engineer/ZH-sys/For Games/CSS/for debugging/Counter-Strike-Plugins/CSS-GH"
 ]
 
-OUTPUT_FILE = "/mnt/2TB-NVME/mge_engineer/ZH-sys/For Games/CSS/for debugging/Counter-Strike-Plugins/.agents/Architecture_Map.md"
+OUTPUT_FILE = "/mnt/2TB-NVME/mge_engineer/ZH-sys/For Games/CSS/for debugging/Counter-Strike-Plugins/.agents/Architecture_Map_Test.md"
+MAX_TEST_FILES = 10
 
 PROMPT_TEMPLATE = """
 Ты — старший инженер по SourcePawn. Твоя задача — проанализировать исходный код плагина и извлечь ключевую информацию.
@@ -75,6 +76,13 @@ def main():
                         results[filepath] = res
                     else:
                         print(f"Пропуск {file} из-за ошибки анализа.")
+                        
+                    if len(results) >= MAX_TEST_FILES:
+                        break
+            if len(results) >= MAX_TEST_FILES:
+                break
+        if len(results) >= MAX_TEST_FILES:
+            break
 
     # Запись в Markdown
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
