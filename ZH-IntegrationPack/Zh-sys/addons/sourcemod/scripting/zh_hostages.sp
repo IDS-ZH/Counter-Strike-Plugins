@@ -326,7 +326,7 @@ bool CanClientSeeTarget(int client, int target)
     GetEntPropVector(target, Prop_Data, "m_vecOrigin", targetEyePos);
     targetEyePos[2] += 60.0; // Approximate hostage eye height
     
-    if (GetVectorDistance(clientEyePos, targetEyePos) > 800.0) return false;
+    if (GetVectorDistance(clientEyePos, targetEyePos) > 2400.0) return false;
     
     float clientAngles[3], dir[3], targetAngles[3];
     GetClientEyeAngles(client, clientAngles);
@@ -342,8 +342,8 @@ bool CanClientSeeTarget(int client, int target)
     while (diffPitch > 180.0) diffPitch -= 360.0;
     while (diffPitch < -180.0) diffPitch += 360.0;
     
-    // 90 degree FOV cone
-    if (FloatAbs(diffYaw) > 45.0 || FloatAbs(diffPitch) > 45.0) return false;
+    // 150 degree FOV cone (75 degrees left/right, up/down)
+    if (FloatAbs(diffYaw) > 75.0 || FloatAbs(diffPitch) > 75.0) return false;
     
     // Line of sight
     Handle trace = TR_TraceRayFilterEx(clientEyePos, targetEyePos, MASK_VISIBLE, RayType_EndPoint, TraceFilter_IgnoreSelf, client);
