@@ -48,19 +48,20 @@ public void OnGameFrame()
             SetEntPropVector(i, Prop_Data, "m_vecAbsVelocity", vel);
             
             // CHostage::PhysicsSimulate forces the entity's velocity back to its internal m_vel!
-            // We must update m_vel (offset + 20 from m_leader) to prevent jitter and allow native animations.
-            // Also, CHostage only processes step-ups (stairs) if m_accel (offset + 32) is non-zero!
+            // We must update m_vel (offset + 24 from m_leader) to prevent jitter and allow native animations.
+            // Also, CHostage only processes step-ups (stairs) if m_accel (offset + 36) is non-zero!
             static int leaderOffset = -1;
             if (leaderOffset == -1) leaderOffset = FindSendPropInfo("CHostage", "m_leader");
             if (leaderOffset > 0)
             {
-                // Only write X and Y to m_vel and m_accel! Let the engine handle Z (gravity/step-ups)!
-                SetEntDataFloat(i, leaderOffset + 20, vel[0], true);
-                SetEntDataFloat(i, leaderOffset + 24, vel[1], true);
+                // Correct offsets: m_leader (+0), m_lastLeaderID (+4), CountdownTimer (+8, 12 bytes), m_hasBeenUsed (+20), m_vel (+24), m_accel (+36)
+                SetEntDataVector(i, leaderOffset + 24, vel, true);
                 
-                SetEntDataFloat(i, leaderOffset + 32, vel[0] * 2.0, true);
-                SetEntDataFloat(i, leaderOffset + 36, vel[1] * 2.0, true);
-                SetEntDataFloat(i, leaderOffset + 40, 0.0, true); // Z acceleration MUST be 0!
+                float accel[3];
+                accel[0] = vel[0] * 2.0;
+                accel[1] = vel[1] * 2.0;
+                accel[2] = vel[2] * 2.0;
+                SetEntDataVector(i, leaderOffset + 36, accel, true);
             }
             
             // Allow native animation blending based on velocity
@@ -290,8 +291,8 @@ void ZH_StopHostage(int hostage)
     if (leaderOffset == -1) leaderOffset = FindSendPropInfo("CHostage", "m_leader");
     if (leaderOffset > 0)
     {
-        SetEntDataVector(hostage, leaderOffset + 20, zeroVel, true);
-        SetEntDataVector(hostage, leaderOffset + 32, zeroVel, true);
+        SetEntDataVector(hostage, leaderOffset + 24, zeroVel, true);
+        SetEntDataVector(hostage, leaderOffset + 36, zeroVel, true);
     }
 }
 
