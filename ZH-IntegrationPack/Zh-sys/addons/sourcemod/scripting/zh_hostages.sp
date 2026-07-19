@@ -54,15 +54,13 @@ public void OnGameFrame()
             if (leaderOffset == -1) leaderOffset = FindSendPropInfo("CHostage", "m_leader");
             if (leaderOffset > 0)
             {
-                SetEntDataVector(i, leaderOffset + 20, vel, true);
+                // Only write X and Y to m_vel and m_accel! Let the engine handle Z (gravity/step-ups)!
+                SetEntDataFloat(i, leaderOffset + 20, vel[0], true);
+                SetEntDataFloat(i, leaderOffset + 24, vel[1], true);
                 
-                // m_vel += deltaT * (m_accel - damping * m_vel); damping is 2.0f
-                // We set m_accel = vel * 2.0f so the equation balances out perfectly and triggers StepUp!
-                float accel[3];
-                accel[0] = vel[0] * 2.0;
-                accel[1] = vel[1] * 2.0;
-                accel[2] = vel[2] * 2.0;
-                SetEntDataVector(i, leaderOffset + 32, accel, true);
+                SetEntDataFloat(i, leaderOffset + 32, vel[0] * 2.0, true);
+                SetEntDataFloat(i, leaderOffset + 36, vel[1] * 2.0, true);
+                SetEntDataFloat(i, leaderOffset + 40, 0.0, true); // Z acceleration MUST be 0!
             }
             
             // Allow native animation blending based on velocity
@@ -159,33 +157,30 @@ public Action Timer_HostageThink(Handle timer)
 
         if (isCaught)
         {
-            float zeroVel[3] = {0.0, 0.0, 0.0};
-            SetEntPropVector(hostage, Prop_Data, "m_vecAbsVelocity", zeroVel);
-            SetEntPropVector(hostage, Prop_Data, "m_vecBaseVelocity", zeroVel);
+            ZH_StopHostage(hostage);
             SetEntityRenderMode(hostage, RENDER_TRANSCOLOR);
             SetEntityRenderColor(hostage, 50, 255, 50, 255);
-            g_bHostageMoving[hostage] = false;
             SetEntPropEnt(hostage, Prop_Send, "m_leader", -1);
             continue;
         }
 
         if (GetVectorDistance(hostOrigin, g_RescueZone) < 50.0)
         {
-            float zeroVel[3] = {0.0, 0.0, 0.0};
-            SetEntPropVector(hostage, Prop_Data, "m_vecAbsVelocity", zeroVel);
-            SetEntPropVector(hostage, Prop_Data, "m_vecBaseVelocity", zeroVel);
+            ZH_StopHostage(hostage);
             SetEntityRenderMode(hostage, RENDER_TRANSCOLOR);
             SetEntityRenderColor(hostage, 50, 50, 255, 255);
-            g_bHostageMoving[hostage] = false;
             continue;
         }
 
         int leader = GetEntPropEnt(hostage, Prop_Send, "m_leader");
         if (leader > 0 && leader <= MaxClients && IsClientInGame(leader) && IsPlayerAlive(leader))
         {
-            g_bHostageMoving[hostage] = false;
-            SetEntityRenderMode(hostage, RENDER_NORMAL);
-            SetEntityRenderColor(hostage, 255, 255, 255, 255);
+            if (g_bHostageMoving[hostage])
+            {
+                ZH_StopHostage(hostage);
+                SetEntityRenderMode(hostage, RENDER_NORMAL);
+                SetEntityRenderColor(hostage, 255, 255, 255, 255);
+            }
             continue;
         }
 
@@ -283,3 +278,20 @@ public Action Timer_HostageThink(Handle timer)
 
     return Plugin_Continue;
 }
+
+void ZH_StopHostage(int hostage)
+{
+    g_bHostageMoving[hostage] = false;
+    float zeroVel[3] = {0.0, 0.0, 0.0};
+    SetEntPropVector(hostage, Prop_Data, "m_vecAbsVelocity", zeroVel);
+    SetEntPropVector(hostage, Prop_Data, "m_vecBaseVelocity", zeroVel);
+    
+    static int leaderOffset = -1;
+    if (leaderOffset == -1) leaderOffset = FindSendPropInfo("CHostage", "m_leader");
+    if (leaderOffset > 0)
+    {
+        SetEntDataVector(hostage, leaderOffset + 20, zeroVel, true);
+        SetEntDataVector(hostage, leaderOffset + 32, zeroVel, true);
+    }
+}
+
