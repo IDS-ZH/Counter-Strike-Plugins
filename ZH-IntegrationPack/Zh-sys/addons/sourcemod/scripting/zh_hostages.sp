@@ -145,10 +145,7 @@ public Action Timer_HostageThink(Handle timer)
         {
             if (IsClientInGame(i) && IsPlayerAlive(i) && GetClientTeam(i) == 2)
             {
-                float tPos[3];
-                GetClientAbsOrigin(i, tPos);
-                
-                if (GetVectorDistance(hostOrigin, tPos) < 600.0)
+                if (CanClientSeeTarget(i, hostage))
                 {
                     isCaught = true;
                     break;
@@ -210,6 +207,31 @@ public Action Timer_HostageThink(Handle timer)
                 float dist = GetVectorLength(dir);
                 if (dist > 1.0)
                 {
+                    // Local avoidance to prevent hostages from getting stuck inside each other
+                    float avoidance[3] = {0.0, 0.0, 0.0};
+                    for (int j = MaxClients + 1; j < 2048; j++)
+                    {
+                        if (hostage != j && g_bHostageMoving[j] && IsValidEntity(j))
+                        {
+                            float otherPos[3];
+                            GetEntPropVector(j, Prop_Data, "m_vecOrigin", otherPos);
+                            float hostDist = GetVectorDistance(hostOrigin, otherPos);
+                            // Typical hostage hull width is ~32 units
+                            if (hostDist < 50.0)
+                            {
+                                float pushDir[3];
+                                MakeVectorFromPoints(otherPos, hostOrigin, pushDir);
+                                pushDir[2] = 0.0;
+                                NormalizeVector(pushDir, pushDir);
+                                ScaleVector(pushDir, 60.0); // Strong push away
+                                AddVectors(avoidance, pushDir, avoidance);
+                            }
+                        }
+                    }
+                    
+                    dir[0] += avoidance[0];
+                    dir[1] += avoidance[1];
+                    
                     // Smooth velocity direction to prevent 8-way animation snapping
                     static float lastDir[2048][3];
                     if (g_bHostageMoving[hostage] && GetVectorLength(lastDir[hostage]) > 0.1)
@@ -294,5 +316,57 @@ void ZH_StopHostage(int hostage)
         SetEntDataVector(hostage, leaderOffset + 24, zeroVel, true);
         SetEntDataVector(hostage, leaderOffset + 36, zeroVel, true);
     }
+}
+
+bool CanClientSeeTarget(int client, int target)
+{
+    float clientEyePos[3], targetEyePos[3];
+    GetClientEyePosition(client, clientEyePos);
+    
+    GetEntPropVector(target, Prop_Data, "m_vecOrigin", targetEyePos);
+    targetEyePos[2] += 60.0; // Approximate hostage eye height
+    
+    if (GetVectorDistance(clientEyePos, targetEyePos) > 800.0) return false;
+    
+    float clientAngles[3], dir[3], targetAngles[3];
+    GetClientEyeAngles(client, clientAngles);
+    
+    MakeVectorFromPoints(clientEyePos, targetEyePos, dir);
+    GetVectorAngles(dir, targetAngles);
+    
+    float diffYaw = targetAngles[1] - clientAngles[1];
+    while (diffYaw > 180.0) diffYaw -= 360.0;
+    while (diffYaw < -180.0) diffYaw += 360.0;
+    
+    float diffPitch = targetAngles[0] - clientAngles[0];
+    while (diffPitch > 180.0) diffPitch -= 360.0;
+    while (diffPitch < -180.0) diffPitch += 360.0;
+    
+    // 90 degree FOV cone
+    if (FloatAbs(diffYaw) > 45.0 || FloatAbs(diffPitch) > 45.0) return false;
+    
+    // Line of sight
+    Handle trace = TR_TraceRayFilterEx(clientEyePos, targetEyePos, MASK_VISIBLE, RayType_EndPoint, TraceFilter_IgnoreSelf, client);
+    bool canSee = false;
+    if (TR_DidHit(trace))
+    {
+        int entity = TR_GetEntityIndex(trace);
+        if (entity == target)
+        {
+            canSee = true;
+        }
+    }
+    else
+    {
+        canSee = true;
+    }
+    CloseHandle(trace);
+    
+    return canSee;
+}
+
+public bool TraceFilter_IgnoreSelf(int entity, int contentsMask, any data)
+{
+    return (entity != data);
 }
 
